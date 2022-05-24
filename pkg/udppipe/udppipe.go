@@ -71,8 +71,8 @@ const (
 // UDP holds our private data for the component
 type UDP struct {
 	addr string
-	in   chan Packet
-	out  chan Packet
+	in   chan *Packet
+	out  chan *Packet
 
 	conn *net.UDPConn
 
@@ -82,7 +82,7 @@ type UDP struct {
 
 	ct ConnType
 
-	pl pipeline.Pipelineable[Packet]
+	pl pipeline.Pipelineable[*Packet]
 }
 
 // RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
@@ -100,7 +100,7 @@ func recoverFromClosedChan() {
 
 // protectChanWrite sends to a channel with a context cancel to
 // exit on contect close even if the write to channel is blocked
-func (u *UDP) protectChanWrite(t Packet) {
+func (u *UDP) protectChanWrite(t *Packet) {
 	defer recoverFromClosedChan()
 	select {
 	case u.out <- t:
@@ -155,7 +155,7 @@ func (u *UDP) processInUDP(wg *sync.WaitGroup) {
 			continue
 		}
 
-		p := Packet{Addr: a, Data: buf[:n]}
+		p := &Packet{Addr: a, Data: buf[:n]}
 		u.protectChanWrite(p)
 	}
 }
@@ -165,7 +165,7 @@ func (u *UDP) processInUDP(wg *sync.WaitGroup) {
 func (u *UDP) processInChan(wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	send := func(p Packet) {
+	send := func(p *Packet) {
 		if len(p.Data) > MaxPacketSize {
 			log.Printf("packet size exceeds max: %v\n", len(p.Data))
 			return
@@ -203,18 +203,18 @@ func (u *UDP) processInChan(wg *sync.WaitGroup) {
 // ------------------------------------------------------------------------------------
 
 // InChan returns a write only channel that the incomming packets will be read from
-func (u *UDP) InChan() chan<- Packet {
+func (u *UDP) InChan() chan<- *Packet {
 	return u.in
 }
 
 // OutputChan returns a read only output channel that the incomming UDP packets will
 // be placed onto
-func (u *UDP) OuputChan() <-chan Packet {
+func (u *UDP) OuputChan() <-chan *Packet {
 	return u.out
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (u *UDP) PipelineChan() chan Packet {
+func (u *UDP) PipelineChan() chan *Packet {
 	return u.out
 }
 
@@ -247,9 +247,9 @@ func (u *UDP) Close() {
 //
 //  NOTE:
 //    The input channel we will not close, we assume we do not own it
-func NewWithParams(wg *sync.WaitGroup, in1 chan Packet, addr string, ct ConnType, outChanSize int) (*UDP, error) {
+func NewWithParams(wg *sync.WaitGroup, in1 chan *Packet, addr string, ct ConnType, outChanSize int) (*UDP, error) {
 	c, cancel := context.WithCancel(context.Background())
-	udp := UDP{out: make(chan Packet, outChanSize), addr: addr, ctx: c, can: cancel, in: in1, ct: ct}
+	udp := UDP{out: make(chan *Packet, outChanSize), addr: addr, ctx: c, can: cancel, in: in1, ct: ct}
 
 	if err := udp.startConn(); err != nil {
 		return nil, err
@@ -266,7 +266,7 @@ func NewWithParams(wg *sync.WaitGroup, in1 chan Packet, addr string, ct ConnType
 
 // NewwithChan will create a UDP component with little fuss for the caller
 // it takes just a port and input channel.  It will always setup a SERVER mode component
-func NewWithChan(port int, in chan Packet) (*UDP, error) {
+func NewWithChan(port int, in chan *Packet) (*UDP, error) {
 	addr := fmt.Sprintf(":%v", port)
 	udpc, err := NewWithParams(new(sync.WaitGroup), in, addr, SERVER, 1)
 	if err != nil {
@@ -276,7 +276,7 @@ func NewWithChan(port int, in chan Packet) (*UDP, error) {
 }
 
 // NewWithPipeline takes a pipelineable
-func NewWithPipeline(port int, p pipeline.Pipelineable[Packet]) (*UDP, error) {
+func NewWithPipeline(port int, p pipeline.Pipelineable[*Packet]) (*UDP, error) {
 	if p == nil {
 		return nil, errors.New("bad pipeline passed in to New")
 	}
@@ -294,7 +294,7 @@ func NewWithPipeline(port int, p pipeline.Pipelineable[Packet]) (*UDP, error) {
 // New will create a UDP component with little fuss for the caller
 // it takes just a port.  It will always setup a SERVER mode component
 func New(port int) (*UDP, error) {
-	udpc, err := NewWithChan(port, make(chan Packet, 1))
+	udpc, err := NewWithChan(port, make(chan *Packet, 1))
 	if err != nil {
 		return nil, err
 	}

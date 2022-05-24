@@ -23,7 +23,7 @@ const (
 func ExampleNewWithParams() {
 	wg := new(sync.WaitGroup)
 
-	in := make(chan udppipe.Packet, 1)
+	in := make(chan *udppipe.Packet, 1)
 
 	// Must pass in the input channel as we dont assume we own it
 	udpcomp, err := udppipe.NewWithParams(wg, in, ":9092", udppipe.SERVER, 1)
@@ -36,7 +36,7 @@ loopexit:
 	for {
 		select {
 		case <-time.After(time.Second * 1):
-			in <- udppipe.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
+			in <- &udppipe.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
 		case p := <-udpcomp.OuputChan():
 			fmt.Printf("%v: %v\n", p.Addr, p.Data)
 			break loopexit
@@ -62,7 +62,7 @@ func ExampleNew() {
 	}
 
 	// Send a Packet
-	udpcomp.InChan() <- udppipe.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
+	udpcomp.InChan() <- &udppipe.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
 
 	// Receive a Packet and Display it
 	p := <-udpcomp.OuputChan()
