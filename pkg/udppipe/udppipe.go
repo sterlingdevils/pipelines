@@ -47,6 +47,10 @@ type Packet struct {
 	Data []byte
 }
 
+func (p *Packet) Size() int {
+	return len(p.Data)
+}
+
 // udp constants for the protocol
 const (
 	// Max size of a Packet Data slice
