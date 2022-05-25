@@ -186,7 +186,7 @@ func (c *ContainerPipe[_, T]) mainloop() {
 	}
 }
 
-func NewWithChan[K comparable, T Keyable[K]](in chan T) (*ContainerPipe[K, T], error) {
+func NewWithChan[K comparable, T Keyable[K]](in chan T) *ContainerPipe[K, T] {
 	con, cancel := context.WithCancel(context.Background())
 	r := ContainerPipe[K, T]{
 		tmap:    make(map[K]T),
@@ -198,28 +198,21 @@ func NewWithChan[K comparable, T Keyable[K]](in chan T) (*ContainerPipe[K, T], e
 		can:     cancel}
 
 	go r.mainloop()
-	return &r, nil
+	return &r
 }
 
-func NewWithPipeline[K comparable, T Keyable[K]](p pipeline.Pipelineable[T]) (*ContainerPipe[K, T], error) {
-	r, err := NewWithChan[K](p.PipelineChan())
-	if err != nil {
-		return nil, err
-	}
+func NewWithPipeline[K comparable, T Keyable[K]](p pipeline.Pipelineable[T]) *ContainerPipe[K, T] {
+	r := NewWithChan[K](p.PipelineChan())
 
 	// save pipeline
 	r.pl = p
 
-	return r, nil
+	return r
 }
 
 // New returns a reference to a a container or error if there was a problem
 // for performance T should be a pointer
-func New[K comparable, T Keyable[K]]() (*ContainerPipe[K, T], error) {
-	r, err := NewWithChan[K](make(chan T, CHANSIZE))
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
+func New[K comparable, T Keyable[K]]() *ContainerPipe[K, T] {
+	r := NewWithChan[K](make(chan T, CHANSIZE))
+	return r
 }

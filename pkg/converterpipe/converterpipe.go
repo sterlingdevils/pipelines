@@ -68,41 +68,28 @@ func (b *ConverterPipe[I, O]) mainloop() {
 	}
 }
 
-func NewWithChannel[I, O any](in chan I) (*ConverterPipe[I, O], error) {
+func NewWithChannel[I, O any](fun func(I) O, in chan I) *ConverterPipe[I, O] {
 	con, cancel := context.WithCancel(context.Background())
 
 	r := ConverterPipe[I, O]{
 		ctx:     con,
 		can:     cancel,
+		convert: fun,
 		inchan:  in,
 		outchan: make(chan O, CHANSIZE)}
 
 	go r.mainloop()
 
-	return &r, nil
+	return &r
 }
 
-func NewWithPipeline[I, O any](p pipeline.Pipelineable[I]) (*ConverterPipe[I, O], error) {
-	r, err := NewWithChannel[I, O](p.PipelineChan())
-	if err != nil {
-		return nil, err
-	}
-
+func NewWithPipeline[I, O any](fun func(I) O, p pipeline.Pipelineable[I]) *ConverterPipe[I, O] {
+	r := NewWithChannel(fun, p.PipelineChan())
 	r.pl = p
 
-	return r, nil
+	return r
 }
 
-func New[I, O any](fun func(I) O) (*ConverterPipe[I, O], error) {
-	con, cancel := context.WithCancel(context.Background())
-	r := ConverterPipe[I, O]{
-		ctx:     con,
-		can:     cancel,
-		convert: fun,
-		inchan:  make(chan I, CHANSIZE),
-		outchan: make(chan O, CHANSIZE)}
-
-	go r.mainloop()
-
-	return &r, nil
+func New[I, O any](fun func(I) O) *ConverterPipe[I, O] {
+	return NewWithChannel(fun, make(chan I, CHANSIZE))
 }

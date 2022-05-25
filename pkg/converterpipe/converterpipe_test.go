@@ -2,7 +2,6 @@ package converterpipe_test
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 
@@ -10,14 +9,10 @@ import (
 )
 
 func Example() {
-	cvt, err := converterpipe.New(
+	cvt := converterpipe.New(
 		func(i int) string {
 			return strconv.Itoa(i)
 		})
-
-	if err != nil {
-		log.Fatalln(err)
-	}
 
 	cvt.InChan() <- 5
 	o := <-cvt.OutChan()
@@ -34,7 +29,7 @@ func returnHello(i int) string {
 }
 
 func Example_fixedoutput() {
-	cvt, _ := converterpipe.New(returnHello)
+	cvt := converterpipe.New(returnHello)
 
 	cvt.InChan() <- 5
 	o := <-cvt.OutChan()

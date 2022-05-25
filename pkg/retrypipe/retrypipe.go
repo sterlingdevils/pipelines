@@ -35,7 +35,7 @@ type Retry[K comparable, T Retryable[K]] struct {
 }
 
 const (
-	CHANSIZE = 10
+	CHANSIZE = 0
 )
 
 // ObjIn
@@ -137,7 +137,7 @@ func (r *Retry[_, _]) Close() {
 }
 
 // New with input channel
-func NewWithChannel[K comparable, T Retryable[K]](in chan T) (*Retry[K, T], error) {
+func NewWithChannel[K comparable, T Retryable[K]](in chan T) *Retry[K, T] {
 	c, cancel := context.WithCancel(context.Background())
 	oin := in
 	oout := make(chan T, CHANSIZE)
@@ -146,26 +146,22 @@ func NewWithChannel[K comparable, T Retryable[K]](in chan T) (*Retry[K, T], erro
 	r := Retry[K, T]{inchan: oin, outchan: oout, ackin: ain, ctx: c, can: cancel}
 
 	// Create a retry container
-	var err error
-	r.retrycontainer, err = containerpipe.New[K, T]()
-	if err != nil {
-		return nil, err
-	}
+	r.retrycontainer = containerpipe.New[K, T]()
 
 	r.wg.Add(1)
 	go r.mainloop()
 
-	return &r, nil
+	return &r
 }
 
 // New with pipeline
-func NewWithPipeline[K comparable, T Retryable[K]](p pipeline.Pipelineable[T]) (*Retry[K, T], error) {
-	r, err := NewWithChannel[K](p.PipelineChan())
+func NewWithPipeline[K comparable, T Retryable[K]](p pipeline.Pipelineable[T]) *Retry[K, T] {
+	r := NewWithChannel[K](p.PipelineChan())
 	r.pl = p
-	return r, err
+	return r
 }
 
 // New
-func New[K comparable, T Retryable[K]]() (*Retry[K, T], error) {
+func New[K comparable, T Retryable[K]]() *Retry[K, T] {
 	return NewWithChannel[K](make(chan T, CHANSIZE))
 }

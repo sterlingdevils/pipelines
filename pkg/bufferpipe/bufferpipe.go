@@ -67,6 +67,10 @@ func (b *BufferPipe[_]) mainloop() {
 }
 
 func NewWithChannel[T any](size int, in chan T) (*BufferPipe[T], error) {
+	if size < 1 {
+		return nil, errors.New("buffer size must be >= 1")
+	}
+
 	con, cancel := context.WithCancel(context.Background())
 
 	r := BufferPipe[T]{

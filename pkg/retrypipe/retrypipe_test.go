@@ -3,7 +3,6 @@ package retrypipe_test
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/sterlingdevils/gobase/pkg/serialnum"
@@ -37,10 +36,7 @@ func NewObj(timeout time.Duration) (*Obj, error) {
 }
 
 func Example() {
-	retry, err := retrypipe.New[KeyType, *Obj]()
-	if err != nil {
-		return
-	}
+	retry := retrypipe.New[KeyType, *Obj]()
 
 	retry.Close()
 	// Output:
@@ -48,10 +44,7 @@ func Example() {
 
 func ExampleRetry_inout() {
 	sn := serialnum.New()
-	retry, err := retrypipe.New[KeyType, *Obj]()
-	if err != nil {
-		log.Fatal("error on create")
-	}
+	retry := retrypipe.New[KeyType, *Obj]()
 
 	for i := 0; i < 10; i++ {
 		o, _ := NewObj(2 * time.Second)
@@ -82,10 +75,7 @@ func ExampleRetry_inout() {
 }
 
 func ExampleRetry_pointercheck() {
-	retry, err := retrypipe.New[KeyType, *Obj]()
-	if err != nil {
-		log.Fatal("error on create")
-	}
+	retry := retrypipe.New[KeyType, *Obj]()
 
 	// Check that we are passing pointer
 	o, _ := NewObj(5 * time.Second)
@@ -109,10 +99,7 @@ func ExampleRetry_pointercheck() {
 }
 
 func ExampleRetry_Close() {
-	retry, err := retrypipe.New[KeyType, *Obj]()
-	if err != nil {
-		log.Fatal("error on create")
-	}
+	retry := retrypipe.New[KeyType, *Obj]()
 	retry.Close()
 	// Output:
 }

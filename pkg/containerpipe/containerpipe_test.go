@@ -38,27 +38,27 @@ func readAndPrint(num int, c <-chan *Node) {
 }
 
 func ExampleNew() {
-	_, _ = containerpipe.New[KeyType, Node2]()
+	_ = containerpipe.New[KeyType, Node2]()
 	// Output:
 }
 
 // ExampleContainerPipe_Close
 func ExampleContainerPipe_Close() {
-	r, _ := containerpipe.New[KeyType, Node2]()
+	r := containerpipe.New[KeyType, Node2]()
 	r.Close()
 	// Output:
 }
 
 // ExampleContainerPipe_InChan
 func ExampleContainerPipe_InChan() {
-	r, _ := containerpipe.New[KeyType, *Node]()
+	r := containerpipe.New[KeyType, *Node]()
 	r.InChan() <- &Node{key: 7, data: "This is a test"}
 	r.Close()
 	// Output:
 }
 
 func ExampleContainerPipe_testtwoitemsinorder() {
-	r, _ := containerpipe.New[KeyType, *Node]()
+	r := containerpipe.New[KeyType, *Node]()
 	r.InChan() <- &Node{key: 1, data: "I don't care what it is"}
 	r.InChan() <- &Node{key: 2, data: "This is a test"}
 
@@ -71,7 +71,7 @@ func ExampleContainerPipe_testtwoitemsinorder() {
 }
 
 func ExampleContainerPipe_testdeloffirst() {
-	r, _ := containerpipe.New[KeyType, *Node]()
+	r := containerpipe.New[KeyType, *Node]()
 	r.InChan() <- &Node{key: 1, data: "I don't care what it is"}
 	r.InChan() <- &Node{key: 2, data: "This is a test"}
 	r.InChan() <- &Node{key: 3, data: "This is a test again"}
@@ -86,7 +86,7 @@ func ExampleContainerPipe_testdeloffirst() {
 }
 
 func ExampleContainerPipe_testdelofsecond() {
-	r, _ := containerpipe.New[KeyType, *Node]()
+	r := containerpipe.New[KeyType, *Node]()
 	r.InChan() <- &Node{key: 1, data: "I don't care what it is"}
 	r.InChan() <- &Node{key: 2, data: "This is a test"}
 	r.InChan() <- &Node{key: 3, data: "This is a test again"}
@@ -101,7 +101,7 @@ func ExampleContainerPipe_testdelofsecond() {
 }
 
 func ExampleContainerPipe_testdelonNotThere() {
-	r, _ := containerpipe.New[KeyType, *Node]()
+	r := containerpipe.New[KeyType, *Node]()
 	r.InChan() <- &Node{key: 1, data: "I don't care what it is"}
 	r.InChan() <- &Node{key: 2, data: "This is a test"}
 	r.DelChan() <- 3
@@ -115,7 +115,7 @@ func ExampleContainerPipe_testdelonNotThere() {
 }
 
 func ExampleContainerPipe_duptest() {
-	r, _ := containerpipe.New[KeyType, *Node]()
+	r := containerpipe.New[KeyType, *Node]()
 	r.InChan() <- &Node{key: 1, data: "I don't care what it is"}
 	// This should be dropped as a dup
 	r.InChan() <- &Node{key: 1, data: "This is a test"}
@@ -130,7 +130,7 @@ func ExampleContainerPipe_duptest() {
 // This example will test if we pass pointer fully thru the container
 func ExampleContainerPipe_fullpointers() {
 	// Notice that T is a pointer to a Node
-	r, _ := containerpipe.New[KeyType, *Node]()
+	r := containerpipe.New[KeyType, *Node]()
 
 	ni := &Node{key: 1, data: "I don't care what it is"}
 
@@ -149,7 +149,7 @@ func ExampleContainerPipe_fullpointers() {
 // // This example will test if we dont pass pointer fully thru the container
 func ExampleContainerPipe_fullnopointers() {
 	// Notice the small difference in T, we are no longer a pointer to Node
-	r, _ := containerpipe.New[KeyType, Node2]()
+	r := containerpipe.New[KeyType, Node2]()
 
 	ni := Node2{key: 1}
 
@@ -168,7 +168,7 @@ func ExampleContainerPipe_fullnopointers() {
 // Checks the ApproxSize that it returns something close
 func ExampleContainerPipe_ApproxSize() {
 	numwrite := 100
-	r, _ := containerpipe.New[KeyType, *Node]()
+	r := containerpipe.New[KeyType, *Node]()
 
 	s1 := r.ApproxSize()
 
