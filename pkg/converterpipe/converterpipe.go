@@ -93,11 +93,12 @@ func NewWithPipeline[I, O any](p pipeline.Pipelineable[I]) (*ConverterPipe[I, O]
 	return r, nil
 }
 
-func New[I, O any]() (*ConverterPipe[I, O], error) {
+func New[I, O any](fun func(I) O) (*ConverterPipe[I, O], error) {
 	con, cancel := context.WithCancel(context.Background())
 	r := ConverterPipe[I, O]{
 		ctx:     con,
 		can:     cancel,
+		convert: fun,
 		inchan:  make(chan I, CHANSIZE),
 		outchan: make(chan O, CHANSIZE)}
 
