@@ -77,17 +77,16 @@ func ExampleRetry_inout() {
 func ExampleRetry_pointercheck() {
 	retry := retrypipe.New[KeyType, *Obj]()
 
+	// Check that we are passing pointer
+	o, _ := NewObj(5 * time.Second)
+	retry.InChan() <- o
+	o.Sn = 5
 	go func() {
 		for o := range retry.OutChan() {
 			fmt.Println(o.Key())
 		}
 	}()
 
-	// Check that we are passing pointer
-	o, _ := NewObj(5 * time.Second)
-	retry.InChan() <- o
-
-	o.Sn = 5
 	retry.InChan() <- o
 
 	time.Sleep(2 * time.Second)

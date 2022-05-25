@@ -28,6 +28,8 @@ func (b *LogPipe[T]) PipelineChan() chan T {
 
 // Close
 func (b *LogPipe[_]) Close() {
+	defer log.Println("<logpipe> finishing Close call")
+
 	// If we pipelined then call Close the input pipeline
 	if b.pl != nil {
 		b.pl.Close()
@@ -41,11 +43,12 @@ func (b *LogPipe[_]) Close() {
 // exit when our context is closed
 func (b *LogPipe[_]) mainloop() {
 	defer close(b.outchan)
+	defer log.Println("<logpipe> closing output channel")
 
 	for {
 		select {
 		case t := <-b.inchan:
-			log.Println(t)
+			log.Println("<logpipe ", t)
 			select {
 			case b.outchan <- t:
 			case <-b.ctx.Done():
@@ -58,6 +61,8 @@ func (b *LogPipe[_]) mainloop() {
 }
 
 func NewWithChannel[T any](in chan T) *LogPipe[T] {
+	log.Println("<logpipe> created")
+
 	con, cancel := context.WithCancel(context.Background())
 	r := LogPipe[T]{ctx: con, can: cancel, inchan: in, outchan: make(chan T, CHANSIZE)}
 
@@ -69,6 +74,7 @@ func NewWithChannel[T any](in chan T) *LogPipe[T] {
 func NewWithPipeline[T any](p pipeline.Pipelineable[T]) *LogPipe[T] {
 	r := NewWithChannel(p.PipelineChan())
 	r.pl = p
+	log.Println("<logpipe> pipeline set")
 	return r
 }
 
