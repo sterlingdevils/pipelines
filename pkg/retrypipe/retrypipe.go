@@ -58,6 +58,11 @@ func (r *Retry[K, _]) AckIn() chan<- K {
 	return r.ackin
 }
 
+// SetAckIn
+func (r *Retry[K, _]) SetAckIn(c chan K) {
+	r.ackin = c
+}
+
 // RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
 // This is not great using the string compare but the go runtime uses a generic error so we
 // can't trap this any other way.
@@ -131,10 +136,10 @@ func (r *Retry[_, _]) Close() {
 	r.retrycontainer.Close()
 }
 
-// New
-func New[K comparable, T Retryable[K]]() (*Retry[K, T], error) {
+// New with input channel
+func NewWithChannel[K comparable, T Retryable[K]](in chan T) (*Retry[K, T], error) {
 	c, cancel := context.WithCancel(context.Background())
-	oin := make(chan T, CHANSIZE)
+	oin := in
 	oout := make(chan T, CHANSIZE)
 	ain := make(chan K, CHANSIZE)
 
@@ -151,4 +156,16 @@ func New[K comparable, T Retryable[K]]() (*Retry[K, T], error) {
 	go r.mainloop()
 
 	return &r, nil
+}
+
+// New with pipeline
+func NewWithPipeline[K comparable, T Retryable[K]](p pipeline.Pipelineable[T]) (*Retry[K, T], error) {
+	r, err := NewWithChannel[K](p.PipelineChan())
+	r.pl = p
+	return r, err
+}
+
+// New
+func New[K comparable, T Retryable[K]]() (*Retry[K, T], error) {
+	return NewWithChannel[K](make(chan T, CHANSIZE))
 }
