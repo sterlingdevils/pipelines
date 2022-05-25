@@ -46,20 +46,20 @@ func ExampleRetry_inout() {
 	sn := serialnum.New()
 	retry := retrypipe.New[KeyType, *Obj]()
 
+	go func() {
+		for o := range retry.OutChan() {
+			fmt.Println(o.Key())
+		}
+	}()
+
 	for i := 0; i < 10; i++ {
 		o, _ := NewObj(2 * time.Second)
 		o.Sn = KeyType(sn.Next())
 		retry.InChan() <- o
 	}
 
-	go func() {
-		time.Sleep(3 * time.Second)
-		retry.Close()
-	}()
-
-	for o := range retry.OutChan() {
-		fmt.Println(o.Key())
-	}
+	time.Sleep(3 * time.Second)
+	retry.Close()
 
 	// Output:
 	// 0
@@ -77,6 +77,12 @@ func ExampleRetry_inout() {
 func ExampleRetry_pointercheck() {
 	retry := retrypipe.New[KeyType, *Obj]()
 
+	go func() {
+		for o := range retry.OutChan() {
+			fmt.Println(o.Key())
+		}
+	}()
+
 	// Check that we are passing pointer
 	o, _ := NewObj(5 * time.Second)
 	retry.InChan() <- o
@@ -84,14 +90,8 @@ func ExampleRetry_pointercheck() {
 	o.Sn = 5
 	retry.InChan() <- o
 
-	go func() {
-		time.Sleep(2 * time.Second)
-		retry.Close()
-	}()
-
-	for o := range retry.OutChan() {
-		fmt.Println(o.Key())
-	}
+	time.Sleep(2 * time.Second)
+	retry.Close()
 
 	// Output:
 	// 5
