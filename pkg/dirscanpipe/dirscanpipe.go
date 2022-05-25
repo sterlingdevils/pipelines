@@ -11,19 +11,16 @@ import (
 	"time"
 )
 
-const (
-	Base = "scanDir"
-	Size = Base + ".Size"
-)
-
 // DirScan holds a directry to scan and a Channel to put the filenames onto
 type DirScan struct {
 	Dir      string
 	ScanTime time.Duration
-	ch       chan string
-	ctx      context.Context
-	can      context.CancelFunc
-	once     sync.Once
+
+	outchan chan string
+
+	ctx  context.Context
+	can  context.CancelFunc
+	once sync.Once
 }
 
 // RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
@@ -59,7 +56,7 @@ func (d *DirScan) scanDir() error {
 		// if it is not a directory and is not .prefixed
 		if !f.IsDir() && !strings.HasPrefix(f.Name(), ".") {
 			select {
-			case d.ch <- filepath.Join(path, f.Name()):
+			case d.outchan <- filepath.Join(path, f.Name()):
 			case <-d.ctx.Done():
 				return nil
 			}
@@ -82,17 +79,26 @@ func (d *DirScan) loop(wg *sync.WaitGroup) {
 }
 
 // -----  Public Methods
+// InChan, used for pipelineable
+func (d *DirScan) InChan() chan<- string {
+	return nil
+}
 
-// OutputChan returns the output Channel as ReadOnly
-func (d *DirScan) OutputChan() <-chan string {
-	return d.ch
+// OutChan returns the output Channel as ReadOnly
+func (d *DirScan) OutChan() <-chan string {
+	return d.outchan
+}
+
+// PipelineChan returns a R/W channel that is used for pipelining
+func (d *DirScan) PipelineChan() chan string {
+	return d.outchan
 }
 
 // Close will close the data channel
 func (d *DirScan) Close() {
 	d.can()
 	d.once.Do(func() {
-		close(d.ch)
+		close(d.outchan)
 	})
 }
 
@@ -113,7 +119,7 @@ func New(wg *sync.WaitGroup, dir string, scantime time.Duration, chanSize int) (
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	d := DirScan{Dir: dir, ch: make(chan string, chanSize), ScanTime: scantime, ctx: ctx, can: cancel}
+	d := DirScan{Dir: dir, outchan: make(chan string, chanSize), ScanTime: scantime, ctx: ctx, can: cancel}
 
 	wg.Add(1)
 	go d.loop(wg)

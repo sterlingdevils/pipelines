@@ -23,6 +23,10 @@ type BufferPipe[T any] struct {
 
 // InChan
 func (b *BufferPipe[T]) InChan() chan<- T {
+	if b.pl != nil {
+		return b.pl.InChan()
+	}
+
 	return b.inchan
 }
 

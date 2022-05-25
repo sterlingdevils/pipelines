@@ -37,7 +37,7 @@ loopexit:
 		select {
 		case <-time.After(time.Second * 1):
 			in <- &udppipe.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
-		case p := <-udpcomp.OuputChan():
+		case p := <-udpcomp.OutChan():
 			fmt.Printf("%v: %v\n", p.Addr, p.Data)
 			break loopexit
 		}
@@ -65,7 +65,7 @@ func ExampleNew() {
 	udpcomp.InChan() <- &udppipe.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
 
 	// Receive a Packet and Display it
-	p := <-udpcomp.OuputChan()
+	p := <-udpcomp.OutChan()
 	fmt.Printf("%v: %v\n", p.Addr, p.Data)
 
 	// Output: 127.0.0.1:9092: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]

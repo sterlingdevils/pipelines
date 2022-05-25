@@ -101,6 +101,10 @@ func (c *ContainerPipe[_, _]) ApproxSize() int32 {
 
 // InChan
 func (c *ContainerPipe[_, T]) InChan() chan<- T {
+	if c.pl != nil {
+		return c.pl.InChan()
+	}
+
 	return c.inchan
 }
 

@@ -70,9 +70,9 @@ const (
 
 // UDP holds our private data for the component
 type UDP struct {
-	addr string
-	in   chan *Packet
-	out  chan *Packet
+	addr    string
+	inchan  chan *Packet
+	outchan chan *Packet
 
 	conn *net.UDPConn
 
@@ -103,7 +103,7 @@ func recoverFromClosedChan() {
 func (u *UDP) protectChanWrite(t *Packet) {
 	defer recoverFromClosedChan()
 	select {
-	case u.out <- t:
+	case u.outchan <- t:
 	case <-u.ctx.Done():
 	}
 }
@@ -187,7 +187,7 @@ func (u *UDP) processInChan(wg *sync.WaitGroup) {
 	// wait for packets on the input channel or the context to close
 	for {
 		select {
-		case b, more := <-u.in:
+		case b, more := <-u.inchan:
 			if !more { // if the channel is closed, then we are done
 				return
 			}
@@ -204,18 +204,22 @@ func (u *UDP) processInChan(wg *sync.WaitGroup) {
 
 // InChan returns a write only channel that the incomming packets will be read from
 func (u *UDP) InChan() chan<- *Packet {
-	return u.in
+	if u.pl != nil {
+		return u.pl.InChan()
+	}
+
+	return u.inchan
 }
 
-// OutputChan returns a read only output channel that the incomming UDP packets will
+// OutChan returns a read only output channel that the incomming UDP packets will
 // be placed onto
-func (u *UDP) OuputChan() <-chan *Packet {
-	return u.out
+func (u *UDP) OutChan() <-chan *Packet {
+	return u.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
 func (u *UDP) PipelineChan() chan *Packet {
-	return u.out
+	return u.outchan
 }
 
 // Close will shutdown the output channel and cancel the context for the listen
@@ -228,7 +232,7 @@ func (u *UDP) Close() {
 	u.can()
 	u.once.Do(func() {
 		u.conn.Close()
-		close(u.out)
+		close(u.outchan)
 	})
 }
 
@@ -249,7 +253,7 @@ func (u *UDP) Close() {
 //    The input channel we will not close, we assume we do not own it
 func NewWithParams(wg *sync.WaitGroup, in1 chan *Packet, addr string, ct ConnType, outChanSize int) (*UDP, error) {
 	c, cancel := context.WithCancel(context.Background())
-	udp := UDP{out: make(chan *Packet, outChanSize), addr: addr, ctx: c, can: cancel, in: in1, ct: ct}
+	udp := UDP{outchan: make(chan *Packet, outChanSize), addr: addr, ctx: c, can: cancel, inchan: in1, ct: ct}
 
 	if err := udp.startConn(); err != nil {
 		return nil, err

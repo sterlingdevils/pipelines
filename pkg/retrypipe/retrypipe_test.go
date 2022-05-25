@@ -10,12 +10,14 @@ import (
 	"github.com/sterlingdevils/pipelines/pkg/retrypipe"
 )
 
+type KeyType uint64
+type DataType []byte
 type Obj struct {
-	Sn  uint64
+	Sn  KeyType
 	ctx context.Context
 	can context.CancelFunc
 
-	Data []byte
+	Data DataType
 }
 
 // Context returns the private context
@@ -23,7 +25,7 @@ func (o Obj) Context() context.Context {
 	return o.ctx
 }
 
-func (o *Obj) Key() uint64 {
+func (o *Obj) Key() KeyType {
 	return o.Sn
 }
 
@@ -35,7 +37,7 @@ func NewObj(timeout time.Duration) (*Obj, error) {
 }
 
 func Example() {
-	retry, err := retrypipe.New()
+	retry, err := retrypipe.New[KeyType, *Obj]()
 	if err != nil {
 		return
 	}
@@ -46,15 +48,15 @@ func Example() {
 
 func ExampleRetry_inout() {
 	sn := serialnum.New()
-	retry, err := retrypipe.New()
+	retry, err := retrypipe.New[KeyType, *Obj]()
 	if err != nil {
 		log.Fatal("error on create")
 	}
 
 	for i := 0; i < 10; i++ {
 		o, _ := NewObj(2 * time.Second)
-		o.Sn = sn.Next()
-		retry.ObjIn() <- o
+		o.Sn = KeyType(sn.Next())
+		retry.InChan() <- o
 	}
 
 	go func() {
@@ -62,7 +64,7 @@ func ExampleRetry_inout() {
 		retry.Close()
 	}()
 
-	for o := range retry.ObjOut() {
+	for o := range retry.OutChan() {
 		fmt.Println(o.Key())
 	}
 
@@ -80,24 +82,24 @@ func ExampleRetry_inout() {
 }
 
 func ExampleRetry_pointercheck() {
-	retry, err := retrypipe.New()
+	retry, err := retrypipe.New[KeyType, *Obj]()
 	if err != nil {
 		log.Fatal("error on create")
 	}
 
 	// Check that we are passing pointer
 	o, _ := NewObj(5 * time.Second)
-	retry.ObjIn() <- o
+	retry.InChan() <- o
 
 	o.Sn = 5
-	retry.ObjIn() <- o
+	retry.InChan() <- o
 
 	go func() {
 		time.Sleep(2 * time.Second)
 		retry.Close()
 	}()
 
-	for o := range retry.ObjOut() {
+	for o := range retry.OutChan() {
 		fmt.Println(o.Key())
 	}
 
@@ -107,7 +109,7 @@ func ExampleRetry_pointercheck() {
 }
 
 func ExampleRetry_Close() {
-	retry, err := retrypipe.New()
+	retry, err := retrypipe.New[KeyType, *Obj]()
 	if err != nil {
 		log.Fatal("error on create")
 	}

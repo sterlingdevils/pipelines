@@ -6,21 +6,22 @@ import (
 	"sync"
 
 	"github.com/sterlingdevils/pipelines/pkg/containerpipe"
+	"github.com/sterlingdevils/pipelines/pkg/pipeline"
 )
 
 type Contextable interface {
 	Context() context.Context
 }
 
-type Retryable interface {
-	containerpipe.Keyable[uint64]
+type Retryable[K comparable] interface {
+	containerpipe.Keyable[K]
 	Contextable
 }
 
-type Retry struct {
-	objin  chan Retryable
-	objout chan Retryable
-	ackin  chan uint64
+type Retry[K comparable, T Retryable[K]] struct {
+	inchan  chan T
+	outchan chan T
+	ackin   chan K
 
 	wg sync.WaitGroup
 
@@ -28,7 +29,9 @@ type Retry struct {
 	can  context.CancelFunc
 	once sync.Once
 
-	retrycontainer *containerpipe.ContainerPipe[uint64, Retryable]
+	retrycontainer *containerpipe.ContainerPipe[K, T]
+
+	pl pipeline.Pipelineable[T]
 }
 
 const (
@@ -36,17 +39,22 @@ const (
 )
 
 // ObjIn
-func (r *Retry) ObjIn() chan<- Retryable {
-	return r.objin
+func (r *Retry[_, T]) InChan() chan<- T {
+	return r.inchan
 }
 
 // ObjOut
-func (r *Retry) ObjOut() <-chan Retryable {
-	return r.objout
+func (r *Retry[_, T]) OutChan() <-chan T {
+	return r.outchan
+}
+
+// PipelineChan returns a R/W channel that is used for pipelining
+func (r *Retry[_, T]) PipelineChan() chan T {
+	return r.outchan
 }
 
 // AckIn
-func (r *Retry) AckIn() chan<- uint64 {
+func (r *Retry[K, _]) AckIn() chan<- K {
 	return r.ackin
 }
 
@@ -64,7 +72,7 @@ func recoverFromClosedChan() {
 }
 
 // chcecksendout do a safe write to the output channel
-func (r *Retry) checksendout(o Retryable) {
+func (r *Retry[K, T]) checksendout(o T) {
 	defer recoverFromClosedChan()
 
 	// Check if context expired, if so just drop it
@@ -75,7 +83,7 @@ func (r *Retry) checksendout(o Retryable) {
 	// Send to output channel
 	select {
 	case <-o.Context().Done():
-	case r.objout <- o:
+	case r.outchan <- o:
 	case <-r.ctx.Done():
 		return
 	}
@@ -90,12 +98,12 @@ func (r *Retry) checksendout(o Retryable) {
 }
 
 // mainloop
-func (r *Retry) mainloop() {
+func (r *Retry[_, _]) mainloop() {
 	defer r.wg.Done()
 
 	for {
 		select {
-		case o := <-r.objin:
+		case o := <-r.inchan:
 			r.checksendout(o)
 		case a := <-r.ackin:
 			r.retrycontainer.DelChan() <- a
@@ -108,10 +116,15 @@ func (r *Retry) mainloop() {
 }
 
 // Close us
-func (r *Retry) Close() {
+func (r *Retry[_, _]) Close() {
+	// If we pipelined then call Close the input pipeline
+	if r.pl != nil {
+		r.pl.Close()
+	}
+
 	r.can()
 	r.once.Do(func() {
-		close(r.objout)
+		close(r.outchan)
 	})
 
 	// close the retry container
@@ -119,17 +132,17 @@ func (r *Retry) Close() {
 }
 
 // New
-func New() (*Retry, error) {
+func New[K comparable, T Retryable[K]]() (*Retry[K, T], error) {
 	c, cancel := context.WithCancel(context.Background())
-	oin := make(chan Retryable, CHANSIZE)
-	oout := make(chan Retryable, CHANSIZE)
-	ain := make(chan uint64, CHANSIZE)
+	oin := make(chan T, CHANSIZE)
+	oout := make(chan T, CHANSIZE)
+	ain := make(chan K, CHANSIZE)
 
-	r := Retry{objin: oin, objout: oout, ackin: ain, ctx: c, can: cancel}
+	r := Retry[K, T]{inchan: oin, outchan: oout, ackin: ain, ctx: c, can: cancel}
 
 	// Create a retry container
 	var err error
-	r.retrycontainer, err = containerpipe.New[uint64, Retryable]()
+	r.retrycontainer, err = containerpipe.New[K, T]()
 	if err != nil {
 		return nil, err
 	}
