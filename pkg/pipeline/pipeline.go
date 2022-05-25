@@ -1,9 +1,6 @@
 package pipeline
 
 type Pipelineable[T any] interface {
-	// InChan will return the input to the entire pipeline, Components must call up the chain to get the InChan
-	InChan() chan<- T
-
 	// OutChan will return the output channel of the entire pipeline, This should be from the last component
 	OutChan() <-chan T
 

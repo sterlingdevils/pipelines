@@ -1,8 +1,7 @@
-package bufferpipe
+package converterpipe
 
 import (
 	"context"
-	"errors"
 
 	"github.com/sterlingdevils/pipelines/pkg/pipeline"
 )
@@ -11,33 +10,35 @@ const (
 	CHANSIZE = 0
 )
 
-type BufferPipe[T any] struct {
+type ConverterPipe[I any, O any] struct {
 	ctx context.Context
 	can context.CancelFunc
 
-	inchan  chan T
-	outchan chan T
+	inchan  chan I
+	outchan chan O
 
-	pl pipeline.Pipelineable[T]
+	convert func(I) O
+
+	pl pipeline.Pipelineable[I]
 }
 
 // InChan
-func (b *BufferPipe[T]) InChan() chan<- T {
+func (b *ConverterPipe[I, O]) InChan() chan<- I {
 	return b.inchan
 }
 
 // OutChan
-func (b *BufferPipe[T]) OutChan() <-chan T {
+func (b *ConverterPipe[I, O]) OutChan() <-chan O {
 	return b.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (b *BufferPipe[T]) PipelineChan() chan T {
+func (b *ConverterPipe[_, O]) PipelineChan() chan O {
 	return b.outchan
 }
 
 // Close
-func (b *BufferPipe[_]) Close() {
+func (b *ConverterPipe[_, _]) Close() {
 	// If we pipelined then call Close the input pipeline
 	if b.pl != nil {
 		b.pl.Close()
@@ -49,14 +50,15 @@ func (b *BufferPipe[_]) Close() {
 
 // mainloop, read from in channel and write to out channel safely
 // exit when our context is closed
-func (b *BufferPipe[_]) mainloop() {
+func (b *ConverterPipe[I, O]) mainloop() {
 	defer close(b.outchan)
 
 	for {
 		select {
 		case t := <-b.inchan:
+			v := b.convert(t)
 			select {
-			case b.outchan <- t:
+			case b.outchan <- v:
 			case <-b.ctx.Done():
 				return
 			}
@@ -66,22 +68,22 @@ func (b *BufferPipe[_]) mainloop() {
 	}
 }
 
-func NewWithChannel[T any](size int, in chan T) (*BufferPipe[T], error) {
+func NewWithChannel[I, O any](in chan I) (*ConverterPipe[I, O], error) {
 	con, cancel := context.WithCancel(context.Background())
 
-	r := BufferPipe[T]{
+	r := ConverterPipe[I, O]{
 		ctx:     con,
 		can:     cancel,
 		inchan:  in,
-		outchan: make(chan T, size)}
+		outchan: make(chan O, CHANSIZE)}
 
 	go r.mainloop()
 
 	return &r, nil
 }
 
-func NewWithPipeline[T any](size int, p pipeline.Pipelineable[T]) (*BufferPipe[T], error) {
-	r, err := NewWithChannel(size, p.PipelineChan())
+func NewWithPipeline[I, O any](p pipeline.Pipelineable[I]) (*ConverterPipe[I, O], error) {
+	r, err := NewWithChannel[I, O](p.PipelineChan())
 	if err != nil {
 		return nil, err
 	}
@@ -91,17 +93,13 @@ func NewWithPipeline[T any](size int, p pipeline.Pipelineable[T]) (*BufferPipe[T
 	return r, nil
 }
 
-func New[T any](size int) (*BufferPipe[T], error) {
-	if size < 1 {
-		return nil, errors.New("buffer size must be >= 1")
-	}
-
+func New[I, O any]() (*ConverterPipe[I, O], error) {
 	con, cancel := context.WithCancel(context.Background())
-	r := BufferPipe[T]{
+	r := ConverterPipe[I, O]{
 		ctx:     con,
 		can:     cancel,
-		inchan:  make(chan T, size),
-		outchan: make(chan T, CHANSIZE)}
+		inchan:  make(chan I, CHANSIZE),
+		outchan: make(chan O, CHANSIZE)}
 
 	go r.mainloop()
 

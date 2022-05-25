@@ -204,10 +204,6 @@ func (u *UDP) processInChan(wg *sync.WaitGroup) {
 
 // InChan returns a write only channel that the incomming packets will be read from
 func (u *UDP) InChan() chan<- *Packet {
-	if u.pl != nil {
-		return u.pl.InChan()
-	}
-
 	return u.inchan
 }
 
