@@ -34,7 +34,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sterlingdevils/pipelines/pkg/pipeline"
+	"github.com/sterlingdevils/pipelines/pipeliner"
 )
 
 // Packet holds a UDP address and Data from the UDP
@@ -276,7 +276,7 @@ func NewWithChan(port int, in chan *Packet) (*UDP, error) {
 }
 
 // NewWithPipeline takes a pipelineable
-func NewWithPipeline(port int, p pipeline.Pipelineable[*Packet]) (*UDP, error) {
+func NewWithPipeline(port int, p pipeliner.Pipelineable[*Packet]) (*UDP, error) {
 	if p == nil {
 		return nil, errors.New("bad pipeline passed in to New")
 	}

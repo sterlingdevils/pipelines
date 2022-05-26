@@ -1,6 +1,6 @@
-package pipeline_test
+package pipeliner_test
 
-import "github.com/sterlingdevils/pipelines/pkg/pipeline"
+import "github.com/sterlingdevils/pipelines/pipeliner"
 
 type Node[T any] struct {
 }
@@ -14,7 +14,7 @@ func (n Node[T]) Close() {
 
 // Check we can make a Pipelineable
 func Example() {
-	var p pipeline.Pipelineable[int] = Node[int]{}
+	var p pipeliner.Pipeliner[int] = Node[int]{}
 	_ = p
 	// Output:
 }
