@@ -48,7 +48,7 @@ func (b *LogPipe[_]) mainloop() {
 	for {
 		select {
 		case t := <-b.inchan:
-			log.Println("<logpipe ", t)
+			log.Println("<logpipe> ", t)
 			select {
 			case b.outchan <- t:
 			case <-b.ctx.Done():
