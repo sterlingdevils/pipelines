@@ -1,4 +1,4 @@
-package pipeliner
+package pipelines
 
 type Pipeliner[T any] interface {
 	// PipelineChan needs to return a R/W chan that is for the output channel, This is for chaining the pipeline

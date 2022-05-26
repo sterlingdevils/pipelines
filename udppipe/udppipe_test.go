@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sterlingdevils/pipelines/pkg/udppipe"
+	"github.com/sterlingdevils/pipelines/udppipe"
 )
 
 const (

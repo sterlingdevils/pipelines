@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/sterlingdevils/pipelines/pkg/converterpipe"
+	"github.com/sterlingdevils/pipelines/converterpipe"
 )
 
 func Example() {

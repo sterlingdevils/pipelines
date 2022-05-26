@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sterlingdevils/pipelines/pkg/containerpipe"
+	"github.com/sterlingdevils/pipelines/containerpipe"
 )
 
 type KeyType int

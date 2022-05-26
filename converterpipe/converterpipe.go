@@ -3,7 +3,7 @@ package converterpipe
 import (
 	"context"
 
-	"github.com/sterlingdevils/pipelines/pkg/pipeline"
+	"github.com/sterlingdevils/pipelines"
 )
 
 const (
@@ -19,7 +19,7 @@ type ConverterPipe[I any, O any] struct {
 
 	convert func(I) O
 
-	pl pipeline.Pipelineable[I]
+	pl pipelines.Pipeliner[I]
 }
 
 // InChan
@@ -83,7 +83,7 @@ func NewWithChannel[I, O any](fun func(I) O, in chan I) *ConverterPipe[I, O] {
 	return &r
 }
 
-func NewWithPipeline[I, O any](fun func(I) O, p pipeline.Pipelineable[I]) *ConverterPipe[I, O] {
+func NewWithPipeline[I, O any](fun func(I) O, p pipelines.Pipeliner[I]) *ConverterPipe[I, O] {
 	r := NewWithChannel(fun, p.PipelineChan())
 	r.pl = p
 

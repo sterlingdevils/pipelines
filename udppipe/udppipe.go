@@ -34,7 +34,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sterlingdevils/pipelines/pipeliner"
+	"github.com/sterlingdevils/pipelines"
 )
 
 // Packet holds a UDP address and Data from the UDP
@@ -82,7 +82,7 @@ type UDP struct {
 
 	ct ConnType
 
-	pl pipeline.Pipelineable[*Packet]
+	pl pipelines.Pipeliner[*Packet]
 }
 
 // RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
@@ -276,7 +276,7 @@ func NewWithChan(port int, in chan *Packet) (*UDP, error) {
 }
 
 // NewWithPipeline takes a pipelineable
-func NewWithPipeline(port int, p pipeliner.Pipelineable[*Packet]) (*UDP, error) {
+func NewWithPipeline(port int, p pipelines.Pipeliner[*Packet]) (*UDP, error) {
 	if p == nil {
 		return nil, errors.New("bad pipeline passed in to New")
 	}

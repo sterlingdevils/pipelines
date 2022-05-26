@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/sterlingdevils/pipelines/pkg/pipeline"
+	"github.com/sterlingdevils/pipelines"
 )
 
 const (
@@ -18,7 +18,7 @@ type LogPipe[T any] struct {
 	inchan  chan T
 	outchan chan T
 
-	pl pipeline.Pipelineable[T]
+	pl pipelines.Pipeliner[T]
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
@@ -71,7 +71,7 @@ func NewWithChannel[T any](in chan T) *LogPipe[T] {
 	return &r
 }
 
-func NewWithPipeline[T any](p pipeline.Pipelineable[T]) *LogPipe[T] {
+func NewWithPipeline[T any](p pipelines.Pipeliner[T]) *LogPipe[T] {
 	r := NewWithChannel(p.PipelineChan())
 	r.pl = p
 	log.Println("<logpipe> pipeline set")

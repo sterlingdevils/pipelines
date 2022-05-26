@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/sterlingdevils/pipelines/pkg/pipeline"
+	"github.com/sterlingdevils/pipelines"
 )
 
 const (
@@ -18,7 +18,7 @@ type BufferPipe[T any] struct {
 	inchan  chan T
 	outchan chan T
 
-	pl pipeline.Pipelineable[T]
+	pl pipelines.Pipeliner[T]
 }
 
 // InChan
@@ -84,7 +84,7 @@ func NewWithChannel[T any](size int, in chan T) (*BufferPipe[T], error) {
 	return &r, nil
 }
 
-func NewWithPipeline[T any](size int, p pipeline.Pipelineable[T]) (*BufferPipe[T], error) {
+func NewWithPipeline[T any](size int, p pipelines.Pipeliner[T]) (*BufferPipe[T], error) {
 	r, err := NewWithChannel(size, p.PipelineChan())
 	if err != nil {
 		return nil, err

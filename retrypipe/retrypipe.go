@@ -5,8 +5,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/sterlingdevils/pipelines/pkg/containerpipe"
-	"github.com/sterlingdevils/pipelines/pkg/pipeline"
+	"github.com/sterlingdevils/pipelines"
+	"github.com/sterlingdevils/pipelines/containerpipe"
 )
 
 type Contextable interface {
@@ -31,7 +31,7 @@ type Retry[K comparable, T Retryable[K]] struct {
 
 	retrycontainer *containerpipe.ContainerPipe[K, T]
 
-	pl pipeline.Pipelineable[T]
+	pl pipelines.Pipeliner[T]
 }
 
 const (
@@ -155,7 +155,7 @@ func NewWithChannel[K comparable, T Retryable[K]](in chan T) *Retry[K, T] {
 }
 
 // New with pipeline
-func NewWithPipeline[K comparable, T Retryable[K]](p pipeline.Pipelineable[T]) *Retry[K, T] {
+func NewWithPipeline[K comparable, T Retryable[K]](p pipelines.Pipeliner[T]) *Retry[K, T] {
 	r := NewWithChannel[K](p.PipelineChan())
 	r.pl = p
 	return r

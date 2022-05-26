@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/sterlingdevils/gobase/pkg/serialnum"
-	"github.com/sterlingdevils/pipelines/pkg/retrypipe"
+	"github.com/sterlingdevils/pipelines/retrypipe"
 )
 
 type KeyType uint64

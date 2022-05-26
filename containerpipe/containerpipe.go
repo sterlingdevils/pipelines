@@ -19,7 +19,7 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/sterlingdevils/pipelines/pkg/pipeline"
+	"github.com/sterlingdevils/pipelines"
 )
 
 const (
@@ -47,7 +47,7 @@ type ContainerPipe[K comparable, T Keyable[K]] struct {
 
 	approxSize int32
 
-	pl pipeline.Pipelineable[T]
+	pl pipelines.Pipeliner[T]
 }
 
 func (c *ContainerPipe[_, T]) addT(thing T) {
@@ -201,7 +201,7 @@ func NewWithChan[K comparable, T Keyable[K]](in chan T) *ContainerPipe[K, T] {
 	return &r
 }
 
-func NewWithPipeline[K comparable, T Keyable[K]](p pipeline.Pipelineable[T]) *ContainerPipe[K, T] {
+func NewWithPipeline[K comparable, T Keyable[K]](p pipelines.Pipeliner[T]) *ContainerPipe[K, T] {
 	r := NewWithChan[K](p.PipelineChan())
 
 	// save pipeline
