@@ -3,6 +3,8 @@ package logpipe
 import (
 	"context"
 	"log"
+	"reflect"
+	"sync"
 
 	"github.com/sterlingdevils/pipelines"
 )
@@ -19,6 +21,7 @@ type LogPipe[T any] struct {
 	outchan chan T
 
 	pl pipelines.Pipeliner[T]
+	wg sync.WaitGroup
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
@@ -28,7 +31,7 @@ func (b *LogPipe[T]) PipelineChan() chan T {
 
 // Close
 func (b *LogPipe[_]) Close() {
-	defer log.Println("<logpipe> finishing Close call")
+	defer log.Printf("<logpipe> finishing Close call\n")
 
 	// If we pipelined then call Close the input pipeline
 	if b.pl != nil {
@@ -37,18 +40,25 @@ func (b *LogPipe[_]) Close() {
 
 	// Cancel our context
 	b.can()
+
+	// Wait for us to be done
+	b.wg.Wait()
 }
 
 // mainloop, read from in channel and write to out channel safely, log the item
 // exit when our context is closed
 func (b *LogPipe[_]) mainloop() {
+	defer b.wg.Done()
 	defer close(b.outchan)
-	defer log.Println("<logpipe> closing output channel")
+	defer log.Printf("<logpipe> closing output channel\n")
 
 	for {
 		select {
-		case t := <-b.inchan:
-			log.Println("<logpipe>", t)
+		case t, ok := <-b.inchan:
+			if !ok {
+				return
+			}
+			log.Printf("<logpipe> type:%v   value:%v\n", reflect.TypeOf(t), t)
 			select {
 			case b.outchan <- t:
 			case <-b.ctx.Done():
@@ -61,11 +71,11 @@ func (b *LogPipe[_]) mainloop() {
 }
 
 func NewWithChannel[T any](in chan T) *LogPipe[T] {
-	log.Println("<logpipe> created")
-
 	con, cancel := context.WithCancel(context.Background())
 	r := LogPipe[T]{ctx: con, can: cancel, inchan: in, outchan: make(chan T, CHANSIZE)}
+	log.Printf("<logpipe> created\n")
 
+	r.wg.Add(1)
 	go r.mainloop()
 
 	return &r
@@ -74,7 +84,7 @@ func NewWithChannel[T any](in chan T) *LogPipe[T] {
 func NewWithPipeline[T any](p pipelines.Pipeliner[T]) *LogPipe[T] {
 	r := NewWithChannel(p.PipelineChan())
 	r.pl = p
-	log.Println("<logpipe> pipeline set")
+	log.Printf("<logpipe> pipeline set\n")
 	return r
 }
 

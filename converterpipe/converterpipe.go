@@ -55,7 +55,10 @@ func (c *ConverterPipe[I, O]) mainloop() {
 
 	for {
 		select {
-		case t := <-c.inchan:
+		case t, ok := <-c.inchan:
+			if !ok {
+				return
+			}
 			v := c.convert(t)
 			select {
 			case c.outchan <- v:

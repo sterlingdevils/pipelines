@@ -108,9 +108,15 @@ func (r *Retry[_, _]) mainloop() {
 
 	for {
 		select {
-		case o := <-r.inchan:
+		case o, ok := <-r.inchan:
+			if !ok {
+				return
+			}
 			r.checksendout(o)
-		case a := <-r.ackin:
+		case a, ok := <-r.ackin:
+			if !ok {
+				return
+			}
 			r.retrycontainer.DelChan() <- a
 		case o := <-r.retrycontainer.OutChan():
 			_ = o
