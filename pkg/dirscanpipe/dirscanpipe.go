@@ -79,7 +79,6 @@ func (d *DirScan) loop(wg *sync.WaitGroup) {
 }
 
 // -----  Public Methods
-
 // OutChan returns the output Channel as ReadOnly
 func (d *DirScan) OutChan() <-chan string {
 	return d.outchan
