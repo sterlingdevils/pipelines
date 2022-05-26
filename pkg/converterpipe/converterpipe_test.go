@@ -23,6 +23,21 @@ func Example() {
 	// 5 string
 }
 
+func Example_numchar() {
+	cvt := converterpipe.New(
+		func(i int) string {
+			return fmt.Sprintf("%010d", i)
+		})
+
+	cvt.InChan() <- 5
+	o := <-cvt.OutChan()
+
+	fmt.Println(o)
+
+	// Output:
+	// 0000000005
+}
+
 // ignore the input and just return hello
 func returnHello(i int) string {
 	return "Hello"

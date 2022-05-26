@@ -79,10 +79,6 @@ func (d *DirScan) loop(wg *sync.WaitGroup) {
 }
 
 // -----  Public Methods
-// InChan, used for pipelineable
-func (d *DirScan) InChan() chan<- string {
-	return nil
-}
 
 // OutChan returns the output Channel as ReadOnly
 func (d *DirScan) OutChan() <-chan string {

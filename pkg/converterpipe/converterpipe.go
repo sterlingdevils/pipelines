@@ -23,46 +23,46 @@ type ConverterPipe[I any, O any] struct {
 }
 
 // InChan
-func (b *ConverterPipe[I, O]) InChan() chan<- I {
-	return b.inchan
+func (c *ConverterPipe[I, O]) InChan() chan<- I {
+	return c.inchan
 }
 
 // OutChan
-func (b *ConverterPipe[I, O]) OutChan() <-chan O {
-	return b.outchan
+func (c *ConverterPipe[I, O]) OutChan() <-chan O {
+	return c.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (b *ConverterPipe[_, O]) PipelineChan() chan O {
-	return b.outchan
+func (c *ConverterPipe[_, O]) PipelineChan() chan O {
+	return c.outchan
 }
 
 // Close
-func (b *ConverterPipe[_, _]) Close() {
+func (c *ConverterPipe[_, _]) Close() {
 	// If we pipelined then call Close the input pipeline
-	if b.pl != nil {
-		b.pl.Close()
+	if c.pl != nil {
+		c.pl.Close()
 	}
 
 	// Cancel our context
-	b.can()
+	c.can()
 }
 
 // mainloop, read from in channel and write to out channel safely
 // exit when our context is closed
-func (b *ConverterPipe[I, O]) mainloop() {
-	defer close(b.outchan)
+func (c *ConverterPipe[I, O]) mainloop() {
+	defer close(c.outchan)
 
 	for {
 		select {
-		case t := <-b.inchan:
-			v := b.convert(t)
+		case t := <-c.inchan:
+			v := c.convert(t)
 			select {
-			case b.outchan <- v:
-			case <-b.ctx.Done():
+			case c.outchan <- v:
+			case <-c.ctx.Done():
 				return
 			}
-		case <-b.ctx.Done():
+		case <-c.ctx.Done():
 			return
 		}
 	}
