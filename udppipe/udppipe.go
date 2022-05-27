@@ -142,7 +142,7 @@ func (u *UDP) processInUDP() {
 			continue
 		}
 
-		p := &Packet{Addr: a, Data: buf[:n]}
+		p := &Packet{Addr: *a, DataSlice: buf[:n]}
 		u.protectChanWrite(p)
 	}
 }
@@ -153,18 +153,18 @@ func (u *UDP) processInChan() {
 	defer u.wg.Done()
 
 	send := func(p *Packet) {
-		if len(p.Data) > MaxPacketSize {
-			log.Printf("packet size exceeds max: %v\n", len(p.Data))
+		if p.Length() > MaxPacketSize {
+			log.Printf("packet size exceeds max: %v\n", p.Length())
 			return
 		}
 		switch u.ct {
 		case SERVER:
-			_, err := u.conn.WriteToUDP(p.Data, p.Addr)
+			_, err := u.conn.WriteToUDP(p.Data(), &p.Addr)
 			if err != nil {
 				log.Println("udp write failed")
 			}
 		case CLIENT:
-			_, err := u.conn.Write(p.Data)
+			_, err := u.conn.Write(p.Data())
 			if err != nil {
 				log.Println("udp write failed")
 			}

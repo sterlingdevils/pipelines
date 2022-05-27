@@ -33,9 +33,9 @@ loopexit:
 	for {
 		select {
 		case <-time.After(time.Second * 1):
-			in <- &udppipe.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
+			in <- &udppipe.Packet{Addr: net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, DataSlice: []byte("Hello from Us.")}
 		case p := <-udpcomp.OutChan():
-			fmt.Printf("%v: %v\n", p.Addr, p.Data)
+			fmt.Printf("%v: %v\n", p.Address(), p.Data())
 			break loopexit
 		}
 	}
@@ -46,7 +46,7 @@ loopexit:
 	// Close the input channel so we stop reading
 	close(in)
 
-	// Output: 127.0.0.1:9092: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]
+	// Output: {127.0.0.1 9092 }: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]
 }
 
 func ExampleNew() {
@@ -56,11 +56,11 @@ func ExampleNew() {
 	}
 
 	// Send a Packet
-	udpcomp.InChan() <- &udppipe.Packet{Addr: &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, Data: []byte("Hello from Us.")}
+	udpcomp.InChan() <- &udppipe.Packet{Addr: net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: TESTPORT}, DataSlice: []byte("Hello from Us.")}
 
 	// Receive a Packet and Display it
 	p := <-udpcomp.OutChan()
-	fmt.Printf("%v: %v\n", p.Addr, p.Data)
+	fmt.Printf("%v: %v\n", p.Address(), p.Data())
 
-	// Output: 127.0.0.1:9092: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]
+	// Output: {127.0.0.1 9092 }: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]
 }
