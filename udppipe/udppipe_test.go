@@ -20,7 +20,7 @@ const (
 // receive the udp, then display it, and check the display is
 // correct.
 func ExampleNewWithParams() {
-	in := make(chan *udppipe.Packet, 1)
+	in := make(chan udppipe.Packetable, 1)
 
 	// Must pass in the input channel as we dont assume we own it
 	udpcomp, err := udppipe.NewWithParams(in, ":9092", udppipe.SERVER, 1)

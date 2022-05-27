@@ -30,7 +30,7 @@ func (p *Packet) Data() []byte {
 	return p.DataSlice
 }
 
-func (p *Packet) Length() int {
+func (p *Packet) DataLength() int {
 	return len(p.DataSlice)
 }
 
@@ -57,6 +57,6 @@ func (p *KeyablePacket) Data() []byte {
 	return p.DataSlice
 }
 
-func (p *KeyablePacket) Length() int {
+func (p *KeyablePacket) DataLength() int {
 	return len(p.DataSlice)
 }
