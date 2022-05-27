@@ -20,7 +20,7 @@ func (p *Packet) Size() int {
 	return len(p.Data)
 }
 
-// Packet holds a UDP address and Data from the UDP
+// KeyablePacket holds a UDP address and Data from the UDP
 // The channel types for the input and output channel are of this type
 type KeyablePacket struct {
 	// Addr holds a UDP address (with port) for the packet
