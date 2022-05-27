@@ -14,8 +14,9 @@ const (
 )
 
 type LogPipe[T any] struct {
-	ctx context.Context
-	can context.CancelFunc
+	name string
+	ctx  context.Context
+	can  context.CancelFunc
 
 	inchan  chan T
 	outchan chan T
@@ -31,7 +32,7 @@ func (b *LogPipe[T]) PipelineChan() chan T {
 
 // Close
 func (b *LogPipe[_]) Close() {
-	defer log.Printf("<logpipe> finishing Close call\n")
+	defer log.Printf("<logpipe %v> finishing Close call\n", b.name)
 
 	// If we pipelined then call Close the input pipeline
 	if b.pl != nil {
@@ -50,7 +51,7 @@ func (b *LogPipe[_]) Close() {
 func (b *LogPipe[_]) mainloop() {
 	defer b.wg.Done()
 	defer close(b.outchan)
-	defer log.Printf("<logpipe> closing output channel\n")
+	defer log.Printf("<logpipe %v> closing output channel\n", b.name)
 
 	for {
 		select {
@@ -58,7 +59,7 @@ func (b *LogPipe[_]) mainloop() {
 			if !ok {
 				return
 			}
-			log.Printf("<logpipe> type:%v   value:%v\n", reflect.TypeOf(t), t)
+			log.Printf("<logpipe %v> type:%v   value:%v\n", b.name, reflect.TypeOf(t), t)
 			select {
 			case b.outchan <- t:
 			case <-b.ctx.Done():
@@ -70,10 +71,10 @@ func (b *LogPipe[_]) mainloop() {
 	}
 }
 
-func NewWithChannel[T any](in chan T) *LogPipe[T] {
+func NewWithChannel[T any](name string, in chan T) *LogPipe[T] {
 	con, cancel := context.WithCancel(context.Background())
 	r := LogPipe[T]{ctx: con, can: cancel, inchan: in, outchan: make(chan T, CHANSIZE)}
-	log.Printf("<logpipe> created\n")
+	log.Printf("<logpipe %v> created\n", name)
 
 	r.wg.Add(1)
 	go r.mainloop()
@@ -81,13 +82,15 @@ func NewWithChannel[T any](in chan T) *LogPipe[T] {
 	return &r
 }
 
-func NewWithPipeline[T any](p pipelines.Pipeliner[T]) *LogPipe[T] {
-	r := NewWithChannel(p.PipelineChan())
+func NewWithPipeline[T any](name string, p pipelines.Pipeliner[T]) *LogPipe[T] {
+	r := NewWithChannel(name, p.PipelineChan())
 	r.pl = p
-	log.Printf("<logpipe> pipeline set\n")
+	log.Printf("<logpipe %v> pipeline set\n", name)
 	return r
 }
 
-func New[T any]() *LogPipe[T] {
-	return NewWithChannel(make(chan T, CHANSIZE))
+// New creates a new logger
+// name is used to put unique label on each log
+func New[T any](name string) *LogPipe[T] {
+	return NewWithChannel(name, make(chan T, CHANSIZE))
 }
