@@ -2,6 +2,7 @@ package converterpipe
 
 import (
 	"context"
+	"sync"
 
 	"github.com/sterlingdevils/pipelines"
 )
@@ -20,6 +21,7 @@ type ConverterPipe[I any, O any] struct {
 	convert func(I) O
 
 	pl pipelines.Pipeliner[I]
+	wg sync.WaitGroup
 }
 
 // InChan
@@ -46,11 +48,15 @@ func (c *ConverterPipe[_, _]) Close() {
 
 	// Cancel our context
 	c.can()
+
+	// Wait for us to be done
+	c.wg.Wait()
 }
 
 // mainloop, read from in channel and write to out channel safely
 // exit when our context is closed
 func (c *ConverterPipe[I, O]) mainloop() {
+	defer c.wg.Done()
 	defer close(c.outchan)
 
 	for {
@@ -81,6 +87,7 @@ func NewWithChannel[I, O any](fun func(I) O, in chan I) *ConverterPipe[I, O] {
 		inchan:  in,
 		outchan: make(chan O, CHANSIZE)}
 
+	r.wg.Add(1)
 	go r.mainloop()
 
 	return &r

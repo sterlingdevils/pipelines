@@ -69,6 +69,7 @@ type UDP struct {
 	ct ConnType
 
 	pl pipelines.Pipeliner[*Packet]
+	wg sync.WaitGroup
 }
 
 // RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
@@ -124,8 +125,8 @@ func (u *UDP) startConn() error {
 //   we are going to call wg.Done so things dont
 //   wait for us until we get a packet.  This
 //   should be a defer wg.Done()
-func (u *UDP) processInUDP(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (u *UDP) processInUDP() {
+	defer u.wg.Done()
 
 	for {
 		// Check if the context is cancled
@@ -148,8 +149,8 @@ func (u *UDP) processInUDP(wg *sync.WaitGroup) {
 
 // processInChan will handle the receiving on the input channel and
 // output via the UDP connection
-func (u *UDP) processInChan(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (u *UDP) processInChan() {
+	defer u.wg.Done()
 
 	send := func(p *Packet) {
 		if len(p.Data) > MaxPacketSize {
@@ -216,6 +217,9 @@ func (u *UDP) Close() {
 		u.conn.Close()
 		close(u.outchan)
 	})
+
+	// Wait for us to be done
+	u.wg.Wait()
 }
 
 // ------------------------------------------------------------------------------------
@@ -233,7 +237,7 @@ func (u *UDP) Close() {
 //
 //  NOTE:
 //    The input channel we will not close, we assume we do not own it
-func NewWithParams(wg *sync.WaitGroup, in1 chan *Packet, addr string, ct ConnType, outChanSize int) (*UDP, error) {
+func NewWithParams(in1 chan *Packet, addr string, ct ConnType, outChanSize int) (*UDP, error) {
 	c, cancel := context.WithCancel(context.Background())
 	udp := UDP{outchan: make(chan *Packet, outChanSize), addr: addr, ctx: c, can: cancel, inchan: in1, ct: ct}
 
@@ -241,11 +245,11 @@ func NewWithParams(wg *sync.WaitGroup, in1 chan *Packet, addr string, ct ConnTyp
 		return nil, err
 	}
 
-	wg.Add(1)
-	go udp.processInUDP(wg)
+	udp.wg.Add(1)
+	go udp.processInUDP()
 
-	wg.Add(1)
-	go udp.processInChan(wg)
+	udp.wg.Add(1)
+	go udp.processInChan()
 
 	return &udp, nil
 }
@@ -254,7 +258,7 @@ func NewWithParams(wg *sync.WaitGroup, in1 chan *Packet, addr string, ct ConnTyp
 // it takes just a port and input channel.  It will always setup a SERVER mode component
 func NewWithChan(port int, in chan *Packet) (*UDP, error) {
 	addr := fmt.Sprintf(":%v", port)
-	udpc, err := NewWithParams(new(sync.WaitGroup), in, addr, SERVER, 1)
+	udpc, err := NewWithParams(in, addr, SERVER, 1)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/sterlingdevils/pipelines/udppipe"
@@ -21,12 +20,10 @@ const (
 // receive the udp, then display it, and check the display is
 // correct.
 func ExampleNewWithParams() {
-	wg := new(sync.WaitGroup)
-
 	in := make(chan *udppipe.Packet, 1)
 
 	// Must pass in the input channel as we dont assume we own it
-	udpcomp, err := udppipe.NewWithParams(wg, in, ":9092", udppipe.SERVER, 1)
+	udpcomp, err := udppipe.NewWithParams(in, ":9092", udppipe.SERVER, 1)
 	if err != nil {
 		log.Fatalln("error creating UDP")
 	}
@@ -48,9 +45,6 @@ loopexit:
 
 	// Close the input channel so we stop reading
 	close(in)
-
-	// Wait for all Tasks to finish
-	wg.Wait()
 
 	// Output: 127.0.0.1:9092: [72 101 108 108 111 32 102 114 111 109 32 85 115 46]
 }

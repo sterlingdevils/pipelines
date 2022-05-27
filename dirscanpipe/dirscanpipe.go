@@ -21,6 +21,8 @@ type DirScan struct {
 	ctx  context.Context
 	can  context.CancelFunc
 	once sync.Once
+
+	wg sync.WaitGroup
 }
 
 // RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
@@ -66,8 +68,8 @@ func (d *DirScan) scanDir() error {
 }
 
 // loop until we receive a stop on the run channel
-func (d *DirScan) loop(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (d *DirScan) mainloop() {
+	defer d.wg.Done()
 	for {
 		d.scanDir()
 		select {
@@ -95,16 +97,15 @@ func (d *DirScan) Close() {
 	d.once.Do(func() {
 		close(d.outchan)
 	})
+
+	// Wait for us to be done
+	d.wg.Wait()
 }
 
 // New creates a new dir scanner and starts a scanning loop to send filenames to a channel
 // Must pass a WaitGroup it as we create a go routine for the scanner
 // As a writter we assume we own the channel we return, we will close it when our Close() is called
-func New(wg *sync.WaitGroup, dir string, scantime time.Duration, chanSize int) (*DirScan, error) {
-	if wg == nil {
-		return nil, errors.New("must provide a valid waitgroup")
-	}
-
+func New(dir string, scantime time.Duration, chanSize int) (*DirScan, error) {
 	if fileInfo, err := os.Stat(dir); err != nil {
 		return nil, errors.New("name not found: " + dir)
 	} else {
@@ -116,8 +117,8 @@ func New(wg *sync.WaitGroup, dir string, scantime time.Duration, chanSize int) (
 	ctx, cancel := context.WithCancel(context.Background())
 	d := DirScan{Dir: dir, outchan: make(chan string, chanSize), ScanTime: scantime, ctx: ctx, can: cancel}
 
-	wg.Add(1)
-	go d.loop(wg)
+	d.wg.Add(1)
+	go d.mainloop()
 
 	return &d, nil
 }

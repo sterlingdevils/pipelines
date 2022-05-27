@@ -3,6 +3,7 @@ package bufferpipe
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"github.com/sterlingdevils/pipelines"
 )
@@ -19,6 +20,7 @@ type BufferPipe[T any] struct {
 	outchan chan T
 
 	pl pipelines.Pipeliner[T]
+	wg sync.WaitGroup
 }
 
 // InChan
@@ -45,11 +47,15 @@ func (b *BufferPipe[_]) Close() {
 
 	// Cancel our context
 	b.can()
+
+	// Wait for us to be done
+	b.wg.Wait()
 }
 
 // mainloop, read from in channel and write to out channel safely
 // exit when our context is closed
 func (b *BufferPipe[_]) mainloop() {
+	defer b.wg.Done()
 	defer close(b.outchan)
 
 	for {
@@ -79,6 +85,7 @@ func NewWithChannel[T any](size int, in chan T) (*BufferPipe[T], error) {
 		inchan:  in,
 		outchan: make(chan T, size)}
 
+	r.wg.Add(1)
 	go r.mainloop()
 
 	return &r, nil
@@ -107,6 +114,7 @@ func New[T any](size int) (*BufferPipe[T], error) {
 		inchan:  make(chan T, size),
 		outchan: make(chan T, CHANSIZE)}
 
+	r.wg.Add(1)
 	go r.mainloop()
 
 	return &r, nil

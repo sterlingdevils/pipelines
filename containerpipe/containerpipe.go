@@ -17,6 +17,7 @@ package containerpipe
 import (
 	"container/list"
 	"context"
+	"sync"
 	"sync/atomic"
 
 	"github.com/sterlingdevils/pipelines"
@@ -48,6 +49,7 @@ type ContainerPipe[K comparable, T Keyable[K]] struct {
 	approxSize int32
 
 	pl pipelines.Pipeliner[T]
+	wg sync.WaitGroup
 }
 
 func (c *ContainerPipe[_, T]) addT(thing T) {
@@ -128,6 +130,9 @@ func (c *ContainerPipe[_, _]) Close() {
 
 	// Cancel our context
 	c.can()
+
+	// Wait for us to be done
+	c.wg.Wait()
 }
 
 // RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
@@ -145,6 +150,7 @@ func recoverFromClosedChan() {
 // mainloop
 // If the container is empty, only listen for
 func (c *ContainerPipe[_, T]) mainloop() {
+	defer c.wg.Done()
 	defer close(c.outchan)
 	defer recoverFromClosedChan()
 
@@ -197,6 +203,7 @@ func NewWithChan[K comparable, T Keyable[K]](in chan T) *ContainerPipe[K, T] {
 		ctx:     con,
 		can:     cancel}
 
+	r.wg.Add(1)
 	go r.mainloop()
 	return &r
 }
