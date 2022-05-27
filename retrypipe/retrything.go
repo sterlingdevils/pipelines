@@ -1,27 +1,28 @@
 package retrypipe
 
 import (
-	"context"
+	"time"
 )
 
-type RetryThing[K comparable, T any] struct {
-	Thing T
-	key   K
-	ctx   context.Context
-	can   context.CancelFunc
+type RetryThing[K comparable, T Retryable[K]] struct {
+	thing     T
+	key       K
+	created   time.Time
+	NextRetry time.Time
 }
 
 func (p *RetryThing[K, _]) Key() K {
 	return p.key
 }
 
-func (p *RetryThing[K, _]) Context() context.Context {
-	return p.ctx
+func (p *RetryThing[_, T]) Thing() T {
+	return p.thing
 }
 
-func NewRetryThing[K comparable, T any](k K, t T) *RetryThing[K, T] {
-	c, cancel := context.WithCancel(context.Background())
-	p := &RetryThing[K, T]{Thing: t, key: k, ctx: c, can: cancel}
+func (p *RetryThing[_, _]) Created() time.Time {
+	return p.created
+}
 
-	return p
+func (RetryThing[K, T]) New(k K, t T) *RetryThing[K, T] {
+	return &RetryThing[K, T]{thing: t, key: k, created: time.Now()}
 }

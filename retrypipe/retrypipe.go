@@ -9,13 +9,8 @@ import (
 	"github.com/sterlingdevils/pipelines/containerpipe"
 )
 
-type Contextable interface {
-	Context() context.Context
-}
-
 type Retryable[K comparable] interface {
 	containerpipe.Keyable[K]
-	Contextable
 }
 
 type Retry[K comparable, T Retryable[K]] struct {
@@ -80,14 +75,8 @@ func recoverFromClosedChan() {
 func (r *Retry[K, T]) checksendout(o T) {
 	defer recoverFromClosedChan()
 
-	// Check if context expired, if so just drop it
-	if o.Context().Err() != nil {
-		return
-	}
-
 	// Send to output channel
 	select {
-	case <-o.Context().Done():
 	case r.outchan <- o:
 	case <-r.ctx.Done():
 		return
@@ -95,7 +84,6 @@ func (r *Retry[K, T]) checksendout(o T) {
 
 	// Send to retry channel
 	select {
-	case <-o.Context().Done():
 	case r.retrycontainer.InChan() <- o:
 	case <-r.ctx.Done():
 		return
