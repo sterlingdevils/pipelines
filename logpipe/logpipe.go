@@ -73,7 +73,7 @@ func (b *LogPipe[_]) mainloop() {
 
 func NewWithChannel[T any](name string, in chan T) *LogPipe[T] {
 	con, cancel := context.WithCancel(context.Background())
-	r := LogPipe[T]{ctx: con, can: cancel, inchan: in, outchan: make(chan T, CHANSIZE)}
+	r := LogPipe[T]{name: name, ctx: con, can: cancel, inchan: in, outchan: make(chan T, CHANSIZE)}
 	log.Printf("<logpipe %v> created\n", name)
 
 	r.wg.Add(1)
