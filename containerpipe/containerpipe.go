@@ -27,11 +27,7 @@ const (
 	CHANSIZE = 0
 )
 
-type Keyable[K comparable] interface {
-	Key() K
-}
-
-type ContainerPipe[K comparable, T Keyable[K]] struct {
+type ContainerPipe[K comparable, T pipelines.Keyer[K]] struct {
 	// We use map to hold the thing, and an ordered list of keys
 	tmap  map[K]T
 	tlist *list.List
@@ -48,7 +44,7 @@ type ContainerPipe[K comparable, T Keyable[K]] struct {
 
 	approxSize int32
 
-	pl pipelines.Pipeliner[T]
+	pl pipelines.Pipeline[T]
 	wg sync.WaitGroup
 }
 
@@ -97,27 +93,27 @@ func (c *ContainerPipe[K, T]) pop() *T {
 
 // ApproxSize returns something close to the number of items in the container, maybe.
 // Only updated at the start of each mainloop
-func (c *ContainerPipe[_, _]) ApproxSize() int32 {
+func (c ContainerPipe[_, _]) ApproxSize() int32 {
 	return atomic.LoadInt32(&c.approxSize)
 }
 
 // InChan
-func (c *ContainerPipe[_, T]) InChan() chan<- T {
+func (c ContainerPipe[_, T]) InChan() chan<- T {
 	return c.inchan
 }
 
 // DelChan
-func (c *ContainerPipe[K, _]) DelChan() chan<- K {
+func (c ContainerPipe[K, _]) DelChan() chan<- K {
 	return c.delchan
 }
 
 // OutChan
-func (c *ContainerPipe[_, T]) OutChan() <-chan T {
+func (c ContainerPipe[_, T]) OutChan() <-chan T {
 	return c.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (c *ContainerPipe[_, T]) PipelineChan() chan T {
+func (c ContainerPipe[_, T]) PipelineChan() chan T {
 	return c.outchan
 }
 
@@ -192,7 +188,7 @@ func (c *ContainerPipe[_, T]) mainloop() {
 	}
 }
 
-func NewWithChan[K comparable, T Keyable[K]](in chan T) *ContainerPipe[K, T] {
+func NewWithChan[K comparable, T pipelines.Keyer[K]](in chan T) *ContainerPipe[K, T] {
 	con, cancel := context.WithCancel(context.Background())
 	r := ContainerPipe[K, T]{
 		tmap:    make(map[K]T),
@@ -208,7 +204,7 @@ func NewWithChan[K comparable, T Keyable[K]](in chan T) *ContainerPipe[K, T] {
 	return &r
 }
 
-func NewWithPipeline[K comparable, T Keyable[K]](p pipelines.Pipeliner[T]) *ContainerPipe[K, T] {
+func NewWithPipeline[K comparable, T pipelines.Keyer[K]](p pipelines.Pipeline[T]) *ContainerPipe[K, T] {
 	r := NewWithChan[K](p.PipelineChan())
 
 	// save pipeline
@@ -219,7 +215,7 @@ func NewWithPipeline[K comparable, T Keyable[K]](p pipelines.Pipeliner[T]) *Cont
 
 // New returns a reference to a a container or error if there was a problem
 // for performance T should be a pointer
-func New[K comparable, T Keyable[K]]() *ContainerPipe[K, T] {
+func New[K comparable, T pipelines.Keyer[K]]() *ContainerPipe[K, T] {
 	r := NewWithChan[K](make(chan T, CHANSIZE))
 	return r
 }

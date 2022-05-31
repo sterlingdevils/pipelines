@@ -40,7 +40,7 @@ func recoverFromClosedChan() {
 
 // scanDir
 // This is Blocking on the channel write
-func (d *DirScan) scanDir() error {
+func (d DirScan) scanDir() error {
 	// This is to recover if we write to a closed channel, that is not a problem so recover from a panic
 	defer recoverFromClosedChan()
 
@@ -82,12 +82,12 @@ func (d *DirScan) mainloop() {
 
 // -----  Public Methods
 // OutChan returns the output Channel as ReadOnly
-func (d *DirScan) OutChan() <-chan string {
+func (d DirScan) OutChan() <-chan string {
 	return d.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (d *DirScan) PipelineChan() chan string {
+func (d DirScan) PipelineChan() chan string {
 	return d.outchan
 }
 

@@ -20,22 +20,22 @@ type ConverterPipe[I any, O any] struct {
 
 	convert func(I) O
 
-	pl pipelines.Pipeliner[I]
+	pl pipelines.Pipeline[I]
 	wg sync.WaitGroup
 }
 
 // InChan
-func (c *ConverterPipe[I, O]) InChan() chan<- I {
+func (c ConverterPipe[I, O]) InChan() chan<- I {
 	return c.inchan
 }
 
 // OutChan
-func (c *ConverterPipe[I, O]) OutChan() <-chan O {
+func (c ConverterPipe[I, O]) OutChan() <-chan O {
 	return c.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (c *ConverterPipe[_, O]) PipelineChan() chan O {
+func (c ConverterPipe[_, O]) PipelineChan() chan O {
 	return c.outchan
 }
 
@@ -93,7 +93,7 @@ func NewWithChannel[I, O any](fun func(I) O, in chan I) *ConverterPipe[I, O] {
 	return &r
 }
 
-func NewWithPipeline[I, O any](fun func(I) O, p pipelines.Pipeliner[I]) *ConverterPipe[I, O] {
+func NewWithPipeline[I, O any](fun func(I) O, p pipelines.Pipeline[I]) *ConverterPipe[I, O] {
 	r := NewWithChannel(fun, p.PipelineChan())
 	r.pl = p
 

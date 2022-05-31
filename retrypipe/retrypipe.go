@@ -10,7 +10,7 @@ import (
 )
 
 type Retryable[K comparable] interface {
-	containerpipe.Keyable[K]
+	pipelines.Keyer[K]
 }
 
 type Retry[K comparable, T Retryable[K]] struct {
@@ -26,7 +26,7 @@ type Retry[K comparable, T Retryable[K]] struct {
 
 	retrycontainer *containerpipe.ContainerPipe[K, T]
 
-	pl pipelines.Pipeliner[T]
+	pl pipelines.Pipeline[T]
 }
 
 const (
@@ -34,22 +34,22 @@ const (
 )
 
 // ObjIn
-func (r *Retry[_, T]) InChan() chan<- T {
+func (r Retry[_, T]) InChan() chan<- T {
 	return r.inchan
 }
 
 // ObjOut
-func (r *Retry[_, T]) OutChan() <-chan T {
+func (r Retry[_, T]) OutChan() <-chan T {
 	return r.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (r *Retry[_, T]) PipelineChan() chan T {
+func (r Retry[_, T]) PipelineChan() chan T {
 	return r.outchan
 }
 
 // AckIn
-func (r *Retry[K, _]) AckIn() chan<- K {
+func (r Retry[K, _]) AckIn() chan<- K {
 	return r.ackin
 }
 
@@ -72,7 +72,7 @@ func recoverFromClosedChan() {
 }
 
 // chcecksendout do a safe write to the output channel
-func (r *Retry[K, T]) checksendout(o T) {
+func (r Retry[K, T]) checksendout(o T) {
 	defer recoverFromClosedChan()
 
 	// Send to output channel
@@ -149,7 +149,7 @@ func NewWithChannel[K comparable, T Retryable[K]](in chan T) *Retry[K, T] {
 }
 
 // New with pipeline
-func NewWithPipeline[K comparable, T Retryable[K]](p pipelines.Pipeliner[T]) *Retry[K, T] {
+func NewWithPipeline[K comparable, T Retryable[K]](p pipelines.Pipeline[T]) *Retry[K, T] {
 	r := NewWithChannel[K](p.PipelineChan())
 	r.pl = p
 	return r

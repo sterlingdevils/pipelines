@@ -11,15 +11,15 @@ type RetryThing[K comparable, T Retryable[K]] struct {
 	NextRetry time.Time
 }
 
-func (p *RetryThing[K, _]) Key() K {
+func (p RetryThing[K, _]) Key() K {
 	return p.key
 }
 
-func (p *RetryThing[_, T]) Thing() T {
+func (p RetryThing[_, T]) Thing() T {
 	return p.thing
 }
 
-func (p *RetryThing[_, _]) Created() time.Time {
+func (p RetryThing[_, _]) Created() time.Time {
 	return p.created
 }
 

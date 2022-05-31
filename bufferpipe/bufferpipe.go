@@ -19,22 +19,22 @@ type BufferPipe[T any] struct {
 	inchan  chan T
 	outchan chan T
 
-	pl pipelines.Pipeliner[T]
+	pl pipelines.Pipeline[T]
 	wg sync.WaitGroup
 }
 
 // InChan
-func (b *BufferPipe[T]) InChan() chan<- T {
+func (b BufferPipe[T]) InChan() chan<- T {
 	return b.inchan
 }
 
 // OutChan
-func (b *BufferPipe[T]) OutChan() <-chan T {
+func (b BufferPipe[T]) OutChan() <-chan T {
 	return b.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (b *BufferPipe[T]) PipelineChan() chan T {
+func (b BufferPipe[T]) PipelineChan() chan T {
 	return b.outchan
 }
 
@@ -91,7 +91,7 @@ func NewWithChannel[T any](size int, in chan T) (*BufferPipe[T], error) {
 	return &r, nil
 }
 
-func NewWithPipeline[T any](size int, p pipelines.Pipeliner[T]) (*BufferPipe[T], error) {
+func NewWithPipeline[T any](size int, p pipelines.Pipeline[T]) (*BufferPipe[T], error) {
 	r, err := NewWithChannel(size, p.PipelineChan())
 	if err != nil {
 		return nil, err

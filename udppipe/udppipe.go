@@ -68,7 +68,7 @@ type UDP struct {
 
 	ct ConnType
 
-	pl pipelines.Pipeliner[Packetable]
+	pl pipelines.Pipeline[Packetable]
 	wg sync.WaitGroup
 }
 
@@ -87,7 +87,7 @@ func recoverFromClosedChan() {
 
 // protectChanWrite sends to a channel with a context cancel to
 // exit on contect close even if the write to channel is blocked
-func (u *UDP) protectChanWrite(t Packetable) {
+func (u *UDP) protectChanWrite(t Packet) {
 	defer recoverFromClosedChan()
 	select {
 	case u.outchan <- t:
@@ -142,7 +142,7 @@ func (u *UDP) processInUDP() {
 			continue
 		}
 
-		p := &Packet{Addr: *a, DataSlice: buf[:n]}
+		p := Packet{Addr: *a, DataSlice: buf[:n]}
 		u.protectChanWrite(p)
 	}
 }
@@ -153,8 +153,8 @@ func (u *UDP) processInChan() {
 	defer u.wg.Done()
 
 	send := func(p Packetable) {
-		if p.DataLength() > MaxPacketSize {
-			log.Printf("packet size exceeds max: %v\n", p.DataLength())
+		if len(p.Data()) > MaxPacketSize {
+			log.Printf("packet size exceeds max: %v\n", len(p.Data()))
 			return
 		}
 		switch u.ct {
@@ -191,18 +191,18 @@ func (u *UDP) processInChan() {
 // ------------------------------------------------------------------------------------
 
 // InChan returns a write only channel that the incomming packets will be read from
-func (u *UDP) InChan() chan<- Packetable {
+func (u UDP) InChan() chan<- Packetable {
 	return u.inchan
 }
 
 // OutChan returns a read only output channel that the incomming UDP packets will
 // be placed onto
-func (u *UDP) OutChan() <-chan Packetable {
+func (u UDP) OutChan() <-chan Packetable {
 	return u.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (u *UDP) PipelineChan() chan Packetable {
+func (u UDP) PipelineChan() chan Packetable {
 	return u.outchan
 }
 
@@ -267,7 +267,7 @@ func NewWithChan(port int, in chan Packetable) (*UDP, error) {
 }
 
 // NewWithPipeline takes a pipelineable
-func NewWithPipeline(port int, p pipelines.Pipeliner[Packetable]) (*UDP, error) {
+func NewWithPipeline(port int, p pipelines.Pipeline[Packetable]) (*UDP, error) {
 	if p == nil {
 		return nil, errors.New("bad pipeline passed in to New")
 	}

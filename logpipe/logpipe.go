@@ -21,12 +21,12 @@ type LogPipe[T any] struct {
 	inchan  chan T
 	outchan chan T
 
-	pl pipelines.Pipeliner[T]
+	pl pipelines.Pipeline[T]
 	wg sync.WaitGroup
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (b *LogPipe[T]) PipelineChan() chan T {
+func (b LogPipe[T]) PipelineChan() chan T {
 	return b.outchan
 }
 
@@ -82,7 +82,7 @@ func NewWithChannel[T any](name string, in chan T) *LogPipe[T] {
 	return &r
 }
 
-func NewWithPipeline[T any](name string, p pipelines.Pipeliner[T]) *LogPipe[T] {
+func NewWithPipeline[T any](name string, p pipelines.Pipeline[T]) *LogPipe[T] {
 	r := NewWithChannel(name, p.PipelineChan())
 	r.pl = p
 	log.Printf("<logpipe %v> pipeline set\n", name)
