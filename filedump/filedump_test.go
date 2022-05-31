@@ -1,6 +1,8 @@
 package filedump_test
 
 import (
+	"os"
+
 	"github.com/sterlingdevils/pipelines/filedump"
 
 	"github.com/sterlingdevils/pipelines/udppipe"
@@ -15,6 +17,7 @@ func (d DataHolder) Data() []byte {
 }
 
 func Example() {
+	os.Chdir("/tmp")
 	fd := filedump.New()
 
 	// Send a Packet

@@ -26,7 +26,7 @@ type LogPipe[T any] struct {
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (b LogPipe[T]) PipelineChan() chan T {
+func (b *LogPipe[T]) PipelineChan() chan T {
 	return b.outchan
 }
 
