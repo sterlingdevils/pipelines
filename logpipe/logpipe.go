@@ -26,6 +26,16 @@ type LogPipe[T any] struct {
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
+func (b *LogPipe[T]) InChan() chan<- T {
+	return b.inchan
+}
+
+// PipelineChan returns a R/W channel that is used for pipelining
+func (b *LogPipe[T]) OutChan() <-chan T {
+	return b.outchan
+}
+
+// PipelineChan returns a R/W channel that is used for pipelining
 func (b *LogPipe[T]) PipelineChan() chan T {
 	return b.outchan
 }
