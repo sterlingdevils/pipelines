@@ -10,8 +10,8 @@ import (
 
 func Example() {
 	cvt := converterpipe.New(
-		func(i int) string {
-			return strconv.Itoa(i)
+		func(i int) (string, error) {
+			return strconv.Itoa(i), nil
 		})
 
 	cvt.InChan() <- 5
@@ -25,8 +25,8 @@ func Example() {
 
 func Example_numchar() {
 	cvt := converterpipe.New(
-		func(i int) string {
-			return fmt.Sprintf("%010d", i)
+		func(i int) (string, error) {
+			return fmt.Sprintf("%010d", i), nil
 		})
 
 	cvt.InChan() <- 5
@@ -39,8 +39,8 @@ func Example_numchar() {
 }
 
 // ignore the input and just return hello
-func returnHello(i int) string {
-	return "Hello"
+func returnHello(i int) (string, error) {
+	return "Hello", nil
 }
 
 func Example_fixedoutput() {

@@ -18,7 +18,7 @@ type ConverterPipe[I any, O any] struct {
 	inchan  chan I
 	outchan chan O
 
-	convert func(I) O
+	convert func(I) (O, error)
 
 	pl pipelines.Pipeline[I]
 	wg sync.WaitGroup
@@ -65,7 +65,10 @@ func (c *ConverterPipe[I, O]) mainloop() {
 			if !ok {
 				return
 			}
-			v := c.convert(t)
+			v, err := c.convert(t)
+			if err != nil {
+				break
+			}
 			select {
 			case c.outchan <- v:
 			case <-c.ctx.Done():
@@ -77,7 +80,7 @@ func (c *ConverterPipe[I, O]) mainloop() {
 	}
 }
 
-func NewWithChannel[I, O any](fun func(I) O, in chan I) *ConverterPipe[I, O] {
+func NewWithChannel[I, O any](fun func(I) (O, error), in chan I) *ConverterPipe[I, O] {
 	con, cancel := context.WithCancel(context.Background())
 
 	r := ConverterPipe[I, O]{
@@ -93,13 +96,13 @@ func NewWithChannel[I, O any](fun func(I) O, in chan I) *ConverterPipe[I, O] {
 	return &r
 }
 
-func NewWithPipeline[I, O any](fun func(I) O, p pipelines.Pipeline[I]) *ConverterPipe[I, O] {
+func NewWithPipeline[I, O any](fun func(I) (O, error), p pipelines.Pipeline[I]) *ConverterPipe[I, O] {
 	r := NewWithChannel(fun, p.PipelineChan())
 	r.pl = p
 
 	return r
 }
 
-func New[I, O any](fun func(I) O) *ConverterPipe[I, O] {
+func New[I, O any](fun func(I) (O, error)) *ConverterPipe[I, O] {
 	return NewWithChannel(fun, make(chan I, CHANSIZE))
 }
