@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/sterlingdevils/pipelines"
 	"github.com/sterlingdevils/pipelines/containerpipe"
@@ -20,25 +21,29 @@ type Retry[K comparable, T Retryable[K]] struct {
 
 	wg sync.WaitGroup
 
-	ctx  context.Context
-	can  context.CancelFunc
-	once sync.Once
+	ctx context.Context
+	can context.CancelFunc
 
-	retrycontainer *containerpipe.ContainerPipe[K, T]
+	// Next one to retry
+	nextone *RetryThing[K, T]
+
+	retrycontainer *containerpipe.ContainerPipe[K, RetryThing[K, T]]
 
 	pl pipelines.Pipeline[T]
 }
 
 const (
-	CHANSIZE = 0
+	CHANSIZE   = 0
+	RETRYTIME  = 3 * time.Second
+	EXPIRETIME = 30 * time.Second
 )
 
-// ObjIn
+//
 func (r Retry[_, T]) InChan() chan<- T {
 	return r.inchan
 }
 
-// ObjOut
+//
 func (r Retry[_, T]) OutChan() <-chan T {
 	return r.outchan
 }
@@ -72,44 +77,99 @@ func recoverFromClosedChan() {
 }
 
 // chcecksendout do a safe write to the output channel
-func (r Retry[K, T]) checksendout(o T) {
+func (r Retry[K, T]) retry(o *RetryThing[K, T]) {
 	defer recoverFromClosedChan()
 
 	// Send to output channel
 	select {
-	case r.outchan <- o:
+	case r.outchan <- o.Thing():
 	case <-r.ctx.Done():
 		return
 	}
 
-	// Send to retry channel
+	// Update Retry Time
+	o.NextRetry = time.Now().Add(RETRYTIME)
+
 	select {
-	case r.retrycontainer.InChan() <- o:
+	case r.retrycontainer.InChan() <- *o:
 	case <-r.ctx.Done():
 		return
 	}
 }
 
+// chcecksendout do a safe write to the output channel
+func (r Retry[K, T]) sendAndRetry(o T) {
+	// Create new retry thing as this is the first time we have seen this
+	rt := RetryThing[K, T]{}.New(o.Key(), o)
+	rt.ExpireTime = rt.Created().Add(EXPIRETIME)
+	rt.NextRetry = time.Now().Add(RETRYTIME)
+
+	// Now Send it
+	r.retry(rt)
+}
+
 // mainloop
 func (r *Retry[_, _]) mainloop() {
 	defer r.wg.Done()
+	defer close(r.outchan)
 
 	for {
-		select {
-		case o, ok := <-r.inchan:
-			if !ok {
+
+		if r.nextone == nil {
+			select {
+			case o, ok := <-r.inchan:
+				if !ok {
+					return
+				}
+				r.sendAndRetry(o)
+			case a, ok := <-r.ackin:
+				if !ok {
+					return
+				}
+				r.retrycontainer.DelChan() <- a
+			case o := <-r.retrycontainer.OutChan():
+				r.nextone = &o
+			case <-r.ctx.Done():
 				return
 			}
-			r.checksendout(o)
-		case a, ok := <-r.ackin:
-			if !ok {
+		} else {
+			// So we have one to retry
+			timen := time.Now()
+			expired := time.After(r.nextone.ExpireTime.Sub(timen))
+			retry := time.After(r.nextone.NextRetry.Sub(timen))
+
+			select {
+
+			case <-expired:
+				// We dont need to do anything because we expired
+
+			// Check if the current retry one nees to be send
+			case <-retry:
+				r.retry(r.nextone)
+				r.nextone = nil
+
+			// Check for new incomming
+			case o, ok := <-r.inchan:
+				if !ok {
+					return
+				}
+				r.sendAndRetry(o)
+
+			// Check for Acks
+			case a, ok := <-r.ackin:
+				if !ok {
+					return
+				}
+				// Check if our current retry waiting is the acked
+				if a == r.nextone.Key() {
+					r.nextone = nil
+				}
+				r.retrycontainer.DelChan() <- a
+
+			// Check for Closed context
+			case <-r.ctx.Done():
 				return
 			}
-			r.retrycontainer.DelChan() <- a
-		case o := <-r.retrycontainer.OutChan():
-			_ = o
-		case <-r.ctx.Done():
-			return
 		}
 	}
 }
@@ -122,9 +182,6 @@ func (r *Retry[_, _]) Close() {
 	}
 
 	r.can()
-	r.once.Do(func() {
-		close(r.outchan)
-	})
 
 	// close the retry container
 	r.retrycontainer.Close()
@@ -140,7 +197,7 @@ func NewWithChannel[K comparable, T Retryable[K]](in chan T) *Retry[K, T] {
 	r := Retry[K, T]{inchan: oin, outchan: oout, ackin: ain, ctx: c, can: cancel}
 
 	// Create a retry container
-	r.retrycontainer = containerpipe.New[K, T]()
+	r.retrycontainer = containerpipe.New[K, RetryThing[K, T]]()
 
 	r.wg.Add(1)
 	go r.mainloop()

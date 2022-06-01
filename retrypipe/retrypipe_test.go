@@ -1,7 +1,6 @@
 package retrypipe_test
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -12,16 +11,8 @@ import (
 type KeyType uint64
 type DataType []byte
 type Obj struct {
-	Sn  KeyType
-	ctx context.Context
-	can context.CancelFunc
-
+	Sn   KeyType
 	Data DataType
-}
-
-// Context returns the private context
-func (o Obj) Context() context.Context {
-	return o.ctx
 }
 
 func (o *Obj) Key() KeyType {
@@ -29,10 +20,7 @@ func (o *Obj) Key() KeyType {
 }
 
 func NewObj(timeout time.Duration) (*Obj, error) {
-	c, cancel := context.WithTimeout(context.Background(), timeout)
-	o := Obj{ctx: c, can: cancel}
-
-	return &o, nil
+	return &Obj{}, nil
 }
 
 func Example() {
