@@ -14,6 +14,12 @@ type Retryable[K comparable] interface {
 	pipelines.Keyer[K]
 }
 
+const (
+	CHANSIZE   = 0
+	RETRYTIME  = 3 * time.Second
+	EXPIRETIME = 30 * time.Second
+)
+
 type Retry[K comparable, T Retryable[K]] struct {
 	inchan  chan T
 	outchan chan T
@@ -30,13 +36,10 @@ type Retry[K comparable, T Retryable[K]] struct {
 	retrycontainer *containerpipe.ContainerPipe[K, RetryThing[K, T]]
 
 	pl pipelines.Pipeline[T]
-}
 
-const (
-	CHANSIZE   = 0
-	RETRYTIME  = 3 * time.Second
-	EXPIRETIME = 30 * time.Second
-)
+	RetryTime  time.Duration
+	ExpireTime time.Duration
+}
 
 //
 func (r Retry[_, T]) InChan() chan<- T {
@@ -88,7 +91,7 @@ func (r Retry[K, T]) retry(o *RetryThing[K, T]) {
 	}
 
 	// Update Retry Time
-	o.NextRetry = time.Now().Add(RETRYTIME)
+	o.NextRetry = time.Now().Add(r.RetryTime)
 
 	select {
 	case r.retrycontainer.InChan() <- *o:
@@ -101,8 +104,8 @@ func (r Retry[K, T]) retry(o *RetryThing[K, T]) {
 func (r Retry[K, T]) sendAndRetry(o T) {
 	// Create new retry thing as this is the first time we have seen this
 	rt := RetryThing[K, T]{}.New(o.Key(), o)
-	rt.ExpireTime = rt.Created().Add(EXPIRETIME)
-	rt.NextRetry = time.Now().Add(RETRYTIME)
+	rt.ExpireTime = rt.Created().Add(r.ExpireTime)
+	rt.NextRetry = time.Now().Add(r.RetryTime)
 
 	// Now Send it
 	r.retry(rt)
@@ -139,7 +142,7 @@ func (r *Retry[_, _]) mainloop() {
 			retry := time.After(r.nextone.NextRetry.Sub(timen))
 
 			select {
-
+			// Check if expired
 			case <-expired:
 				// We dont need to do anything because we expired
 
@@ -194,7 +197,7 @@ func NewWithChannel[K comparable, T Retryable[K]](in chan T) *Retry[K, T] {
 	oout := make(chan T, CHANSIZE)
 	ain := make(chan K, CHANSIZE)
 
-	r := Retry[K, T]{inchan: oin, outchan: oout, ackin: ain, ctx: c, can: cancel}
+	r := Retry[K, T]{inchan: oin, outchan: oout, ackin: ain, ctx: c, can: cancel, RetryTime: RETRYTIME, ExpireTime: EXPIRETIME}
 
 	// Create a retry container
 	r.retrycontainer = containerpipe.New[K, RetryThing[K, T]]()
