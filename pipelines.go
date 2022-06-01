@@ -23,3 +23,12 @@ type Dataer interface {
 type Keyer[K comparable] interface {
 	Key() K
 }
+
+type FileNamer interface {
+	FileName() string
+}
+
+type FileNamerDataer interface {
+	Dataer
+	FileNamer
+}

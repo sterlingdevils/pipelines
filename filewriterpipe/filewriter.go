@@ -1,12 +1,9 @@
-package filedump
+package filewriterpipe
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"strconv"
 	"sync"
-	"time"
 
 	"github.com/sterlingdevils/pipelines"
 )
@@ -15,25 +12,23 @@ const (
 	CHANSIZE = 0
 )
 
-type FileDump struct {
-	received uint64
-
+type FileWriterPipe struct {
 	ctx context.Context
 	can context.CancelFunc
 
-	inchan chan pipelines.Dataer
+	inchan chan pipelines.FileNamerDataer
 
-	pl pipelines.Pipeline[pipelines.Dataer]
+	pl pipelines.Pipeline[pipelines.FileNamerDataer]
 	wg sync.WaitGroup
 }
 
 // InChan returns a write only channel that the incomming packets will be read from
-func (b FileDump) InChan() chan<- pipelines.Dataer {
+func (b FileWriterPipe) InChan() chan<- pipelines.FileNamerDataer {
 	return b.inchan
 }
 
 // Close
-func (b *FileDump) Close() {
+func (b *FileWriterPipe) Close() {
 	// If we pipelined then call Close the input pipeline
 	if b.pl != nil {
 		b.pl.Close()
@@ -46,9 +41,8 @@ func (b *FileDump) Close() {
 	b.wg.Wait()
 }
 
-func (b *FileDump) writefile(t pipelines.Dataer) {
-	name := strconv.FormatInt(time.Now().Unix(), 10) + "." + fmt.Sprintf("%06d", b.received)
-	tmpName := "." + name
+func (b *FileWriterPipe) writefile(t pipelines.FileNamerDataer) {
+	tmpName := "." + t.FileName()
 	tmpFd, err := os.Create(tmpName)
 	if err != nil {
 		return
@@ -61,13 +55,12 @@ func (b *FileDump) writefile(t pipelines.Dataer) {
 	}
 	tmpFd.Close()
 
-	os.Rename(tmpName, name)
-	b.received++
+	os.Rename(tmpName, t.FileName())
 }
 
 // mainloop, read from in channel and write to out channel safely, write the item
 // exit when our context is closed
-func (b *FileDump) mainloop() {
+func (b *FileWriterPipe) mainloop() {
 	defer b.wg.Done()
 
 	for {
@@ -83,9 +76,9 @@ func (b *FileDump) mainloop() {
 	}
 }
 
-func NewWithChannel(in chan pipelines.Dataer) *FileDump {
+func NewWithChannel(in chan pipelines.FileNamerDataer) *FileWriterPipe {
 	con, cancel := context.WithCancel(context.Background())
-	r := FileDump{received: 0, ctx: con, can: cancel, inchan: in}
+	r := FileWriterPipe{ctx: con, can: cancel, inchan: in}
 
 	r.wg.Add(1)
 	go r.mainloop()
@@ -93,13 +86,13 @@ func NewWithChannel(in chan pipelines.Dataer) *FileDump {
 	return &r
 }
 
-func NewWithPipeline(p pipelines.Pipeline[pipelines.Dataer]) *FileDump {
+func NewWithPipeline(p pipelines.Pipeline[pipelines.FileNamerDataer]) *FileWriterPipe {
 	r := NewWithChannel(p.PipelineChan())
 	r.pl = p
 	return r
 }
 
-// New creates a new FileDump
-func New() *FileDump {
-	return NewWithChannel(make(chan pipelines.Dataer, CHANSIZE))
+// New creates a new FileWriterPipe
+func New() *FileWriterPipe {
+	return NewWithChannel(make(chan pipelines.FileNamerDataer, CHANSIZE))
 }
