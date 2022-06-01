@@ -188,6 +188,9 @@ func (r *Retry[_, _]) Close() {
 
 	// close the retry container
 	r.retrycontainer.Close()
+
+	// Wait until we are finished
+	r.wg.Wait()
 }
 
 // New with input channel
