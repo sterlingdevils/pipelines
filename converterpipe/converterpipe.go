@@ -80,7 +80,7 @@ func (c *ConverterPipe[I, O]) mainloop() {
 	}
 }
 
-func NewWithChannel[I, O any](fun func(I) (O, error), in chan I) *ConverterPipe[I, O] {
+func NewWithChannel[I, O any](in chan I, fun func(I) (O, error)) *ConverterPipe[I, O] {
 	con, cancel := context.WithCancel(context.Background())
 
 	r := ConverterPipe[I, O]{
@@ -97,13 +97,13 @@ func NewWithChannel[I, O any](fun func(I) (O, error), in chan I) *ConverterPipe[
 	return &r
 }
 
-func NewWithPipeline[I, O any](fun func(I) (O, error), p pipelines.Pipeline[I]) *ConverterPipe[I, O] {
-	r := NewWithChannel(fun, p.PipelineChan())
+func NewWithPipeline[I, O any](p pipelines.Pipeline[I], fun func(I) (O, error)) *ConverterPipe[I, O] {
+	r := NewWithChannel(p.PipelineChan(), fun)
 	r.pl = p
 
 	return r
 }
 
 func New[I, O any](fun func(I) (O, error)) *ConverterPipe[I, O] {
-	return NewWithChannel(fun, make(chan I, CHANSIZE))
+	return NewWithChannel(make(chan I, CHANSIZE), fun)
 }
