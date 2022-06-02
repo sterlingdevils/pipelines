@@ -19,7 +19,7 @@ type FileWriterPipe struct {
 	inchan chan pipelines.FileNamerDataer
 
 	pl pipelines.Pipeline[pipelines.FileNamerDataer]
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 // InChan returns a write only channel that the incomming packets will be read from
@@ -78,7 +78,7 @@ func (b *FileWriterPipe) mainloop() {
 
 func NewWithChannel(in chan pipelines.FileNamerDataer) *FileWriterPipe {
 	con, cancel := context.WithCancel(context.Background())
-	r := FileWriterPipe{ctx: con, can: cancel, inchan: in}
+	r := FileWriterPipe{ctx: con, can: cancel, inchan: in, wg: new(sync.WaitGroup)}
 
 	r.wg.Add(1)
 	go r.mainloop()

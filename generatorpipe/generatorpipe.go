@@ -17,7 +17,7 @@ type GeneratorPipe[T any] struct {
 
 	generate func() T
 
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 // OutChan
@@ -60,6 +60,7 @@ func New[T any](fun func() T) *GeneratorPipe[T] {
 	r := GeneratorPipe[T]{
 		ctx:      con,
 		can:      cancel,
+		wg:       new(sync.WaitGroup),
 		generate: fun,
 		outchan:  make(chan T, CHANSIZE)}
 

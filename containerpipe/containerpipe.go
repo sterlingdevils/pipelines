@@ -45,7 +45,7 @@ type ContainerPipe[K comparable, T pipelines.Keyer[K]] struct {
 	approxSize int32
 
 	pl pipelines.Pipeline[T]
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 func (c *ContainerPipe[_, T]) addT(thing T) {
@@ -196,6 +196,7 @@ func NewWithChan[K comparable, T pipelines.Keyer[K]](in chan T) *ContainerPipe[K
 		inchan:  in,
 		outchan: make(chan T, CHANSIZE),
 		delchan: make(chan K, CHANSIZE),
+		wg:      new(sync.WaitGroup),
 		ctx:     con,
 		can:     cancel}
 

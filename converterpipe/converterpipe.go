@@ -21,7 +21,7 @@ type ConverterPipe[I any, O any] struct {
 	convert func(I) (O, error)
 
 	pl pipelines.Pipeline[I]
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 // InChan
@@ -86,6 +86,7 @@ func NewWithChannel[I, O any](fun func(I) (O, error), in chan I) *ConverterPipe[
 	r := ConverterPipe[I, O]{
 		ctx:     con,
 		can:     cancel,
+		wg:      new(sync.WaitGroup),
 		convert: fun,
 		inchan:  in,
 		outchan: make(chan O, CHANSIZE)}

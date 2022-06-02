@@ -20,7 +20,7 @@ type BufferPipe[T any] struct {
 	outchan chan T
 
 	pl pipelines.Pipeline[T]
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 // InChan
@@ -111,6 +111,7 @@ func New[T any](size int) (*BufferPipe[T], error) {
 	r := BufferPipe[T]{
 		ctx:     con,
 		can:     cancel,
+		wg:      new(sync.WaitGroup),
 		inchan:  make(chan T, size),
 		outchan: make(chan T, CHANSIZE)}
 

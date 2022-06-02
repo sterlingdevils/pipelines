@@ -18,11 +18,10 @@ type DirScan struct {
 
 	outchan chan string
 
-	ctx  context.Context
-	can  context.CancelFunc
-	once sync.Once
+	ctx context.Context
+	can context.CancelFunc
 
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 // RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
@@ -70,6 +69,8 @@ func (d DirScan) scanDir() error {
 // loop until we receive a stop on the run channel
 func (d *DirScan) mainloop() {
 	defer d.wg.Done()
+	defer close(d.outchan)
+
 	for {
 		d.scanDir()
 		select {
@@ -94,9 +95,6 @@ func (d DirScan) PipelineChan() chan string {
 // Close will close the data channel
 func (d *DirScan) Close() {
 	d.can()
-	d.once.Do(func() {
-		close(d.outchan)
-	})
 
 	// Wait for us to be done
 	d.wg.Wait()
@@ -115,7 +113,7 @@ func New(dir string, scantime time.Duration, chanSize int) (*DirScan, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	d := DirScan{Dir: dir, outchan: make(chan string, chanSize), ScanTime: scantime, ctx: ctx, can: cancel}
+	d := DirScan{Dir: dir, outchan: make(chan string, chanSize), ScanTime: scantime, ctx: ctx, can: cancel, wg: new(sync.WaitGroup)}
 
 	d.wg.Add(1)
 	go d.mainloop()

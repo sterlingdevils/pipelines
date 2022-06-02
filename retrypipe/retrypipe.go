@@ -25,7 +25,7 @@ type Retry[K comparable, T Retryable[K]] struct {
 	outchan chan T
 	ackin   chan K
 
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 
 	ctx context.Context
 	can context.CancelFunc
@@ -200,7 +200,8 @@ func NewWithChannel[K comparable, T Retryable[K]](in chan T) *Retry[K, T] {
 	oout := make(chan T, CHANSIZE)
 	ain := make(chan K, CHANSIZE)
 
-	r := Retry[K, T]{inchan: oin, outchan: oout, ackin: ain, ctx: c, can: cancel, RetryTime: RETRYTIME, ExpireTime: EXPIRETIME}
+	r := Retry[K, T]{inchan: oin, outchan: oout, ackin: ain, ctx: c, can: cancel, wg: new(sync.WaitGroup),
+		RetryTime: RETRYTIME, ExpireTime: EXPIRETIME}
 
 	// Create a retry container
 	r.retrycontainer = containerpipe.New[K, RetryThing[K, T]]()

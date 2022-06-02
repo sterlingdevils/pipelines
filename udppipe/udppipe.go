@@ -64,12 +64,12 @@ type UDP struct {
 
 	ctx  context.Context
 	can  context.CancelFunc
-	once sync.Once
+	once *sync.Once
 
 	ct ConnType
 
 	pl pipelines.Pipeline[Packetable]
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 // RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
@@ -240,7 +240,8 @@ func (u *UDP) Close() {
 //    The input channel we will not close, we assume we do not own it
 func NewWithParams(in1 chan Packetable, addr string, ct ConnType, outChanSize int) (*UDP, error) {
 	c, cancel := context.WithCancel(context.Background())
-	udp := UDP{outchan: make(chan Packetable, outChanSize), addr: addr, ctx: c, can: cancel, inchan: in1, ct: ct}
+	udp := UDP{outchan: make(chan Packetable, outChanSize), addr: addr, inchan: in1, ct: ct,
+		ctx: c, can: cancel, wg: new(sync.WaitGroup), once: new(sync.Once)}
 
 	if err := udp.startConn(); err != nil {
 		return nil, err

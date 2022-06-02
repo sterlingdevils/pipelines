@@ -24,7 +24,7 @@ type FileDump struct {
 	inchan chan pipelines.Dataer
 
 	pl pipelines.Pipeline[pipelines.Dataer]
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 // InChan returns a write only channel that the incomming packets will be read from
@@ -85,7 +85,7 @@ func (b *FileDump) mainloop() {
 
 func NewWithChannel(in chan pipelines.Dataer) *FileDump {
 	con, cancel := context.WithCancel(context.Background())
-	r := FileDump{received: 0, ctx: con, can: cancel, inchan: in}
+	r := FileDump{received: 0, ctx: con, can: cancel, inchan: in, wg: new(sync.WaitGroup)}
 
 	r.wg.Add(1)
 	go r.mainloop()
