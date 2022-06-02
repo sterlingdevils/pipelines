@@ -15,9 +15,18 @@ type Pipeline[T any] interface {
 	Closer
 }
 
+type Sizer interface {
+	Size() int
+}
+
 type Dataer interface {
 	// Data returns a byte slice to the data it holds
 	Data() []byte
+}
+
+type SizerDater interface {
+	Sizer
+	Dataer
 }
 
 type Keyer[K comparable] interface {
