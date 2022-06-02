@@ -5,11 +5,10 @@ import (
 )
 
 type RetryThing[K comparable, T Retryable[K]] struct {
-	thing      T
-	key        K
-	created    time.Time
-	NextRetry  time.Time
-	ExpireTime time.Time
+	thing     T
+	key       K
+	created   time.Time
+	LastRetry time.Time
 }
 
 func (p RetryThing[K, _]) Key() K {

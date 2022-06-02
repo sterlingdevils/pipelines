@@ -83,6 +83,11 @@ func recoverFromClosedChan() {
 func (r Retry[K, T]) retry(o *RetryThing[K, T]) {
 	defer recoverFromClosedChan()
 
+	// Check if we are expired
+	if time.Since(o.Created()) > r.ExpireTime {
+		return
+	}
+
 	// Send to output channel
 	select {
 	case r.outchan <- o.Thing():
@@ -91,7 +96,7 @@ func (r Retry[K, T]) retry(o *RetryThing[K, T]) {
 	}
 
 	// Update Retry Time
-	o.NextRetry = time.Now().Add(r.RetryTime)
+	o.LastRetry = time.Now()
 
 	select {
 	case r.retrycontainer.InChan() <- *o:
@@ -104,11 +109,16 @@ func (r Retry[K, T]) retry(o *RetryThing[K, T]) {
 func (r Retry[K, T]) sendAndRetry(o T) {
 	// Create new retry thing as this is the first time we have seen this
 	rt := RetryThing[K, T]{}.New(o.Key(), o)
-	rt.ExpireTime = rt.Created().Add(r.ExpireTime)
-	rt.NextRetry = time.Now().Add(r.RetryTime)
 
 	// Now Send it
 	r.retry(rt)
+}
+
+func minDuration(a, b time.Duration) time.Duration {
+	if a <= b {
+		return a
+	}
+	return b
 }
 
 // mainloop
@@ -137,15 +147,10 @@ func (r *Retry[_, _]) mainloop() {
 			}
 		} else {
 			// So we have one to retry
-			timen := time.Now()
-			expired := time.After(r.nextone.ExpireTime.Sub(timen))
-			retry := time.After(r.nextone.NextRetry.Sub(timen))
+			delay := minDuration(r.ExpireTime-time.Since(r.nextone.created), r.RetryTime-time.Since(r.nextone.LastRetry))
+			retry := time.After(delay)
 
 			select {
-			// Check if expired
-			case <-expired:
-				// We dont need to do anything because we expired
-
 			// Check if the current retry one nees to be send
 			case <-retry:
 				r.retry(r.nextone)
@@ -200,7 +205,8 @@ func NewWithChannel[K comparable, T Retryable[K]](in chan T) *Retry[K, T] {
 	oout := make(chan T, CHANSIZE)
 	ain := make(chan K, CHANSIZE)
 
-	r := Retry[K, T]{inchan: oin, outchan: oout, ackin: ain, ctx: c, can: cancel, wg: new(sync.WaitGroup),
+	r := Retry[K, T]{inchan: oin, outchan: oout, ackin: ain,
+		ctx: c, can: cancel, wg: new(sync.WaitGroup),
 		RetryTime: RETRYTIME, ExpireTime: EXPIRETIME}
 
 	// Create a retry container
