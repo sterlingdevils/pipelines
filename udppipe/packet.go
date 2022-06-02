@@ -30,9 +30,9 @@ func (p Packet) Data() []byte {
 	return p.DataSlice
 }
 
-// func (p Packet) DataLength() int {
-// 	return len(p.DataSlice)
-// }
+func (p Packet) Size() int {
+	return len(p.DataSlice)
+}
 
 // KeyablePacket holds a UDP address and Data from the UDP
 // The channel types for the input and output channel are of this type
@@ -57,6 +57,6 @@ func (p KeyablePacket) Data() []byte {
 	return p.DataSlice
 }
 
-// func (p KeyablePacket) DataLength() int {
-// 	return len(p.DataSlice)
-// }
+func (p KeyablePacket) Size() int {
+	return len(p.DataSlice)
+}
