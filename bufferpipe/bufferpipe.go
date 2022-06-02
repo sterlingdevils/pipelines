@@ -82,6 +82,7 @@ func NewWithChannel[T any](size int, in chan T) (*BufferPipe[T], error) {
 	r := BufferPipe[T]{
 		ctx:     con,
 		can:     cancel,
+		wg:      new(sync.WaitGroup),
 		inchan:  in,
 		outchan: make(chan T, size)}
 
