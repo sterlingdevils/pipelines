@@ -22,21 +22,21 @@ type LogPipe[T any] struct {
 	outchan chan T
 
 	pl pipelines.Pipeline[T]
-	wg sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (b *LogPipe[T]) InChan() chan<- T {
+func (b LogPipe[T]) InChan() chan<- T {
 	return b.inchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (b *LogPipe[T]) OutChan() <-chan T {
+func (b LogPipe[T]) OutChan() <-chan T {
 	return b.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (b *LogPipe[T]) PipelineChan() chan T {
+func (b LogPipe[T]) PipelineChan() chan T {
 	return b.outchan
 }
 
@@ -83,7 +83,9 @@ func (b *LogPipe[_]) mainloop() {
 
 func NewWithChannel[T any](name string, in chan T) *LogPipe[T] {
 	con, cancel := context.WithCancel(context.Background())
-	r := LogPipe[T]{name: name, ctx: con, can: cancel, inchan: in, outchan: make(chan T, CHANSIZE)}
+	r := LogPipe[T]{name: name,
+		ctx: con, can: cancel, wg: new(sync.WaitGroup),
+		inchan: in, outchan: make(chan T, CHANSIZE)}
 	log.Printf("<logpipe %v> created\n", name)
 
 	r.wg.Add(1)
