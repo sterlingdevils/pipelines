@@ -25,6 +25,16 @@ type FileDump struct {
 
 	pl pipelines.Pipeline[pipelines.Dataer]
 	wg *sync.WaitGroup
+
+	Metricfunc func(name string, val int)
+}
+
+func (b FileDump) SetMetric(name string, val int) {
+	if b.Metricfunc == nil {
+		return
+	}
+
+	b.Metricfunc(name, val)
 }
 
 // InChan returns a write only channel that the incomming packets will be read from
@@ -63,6 +73,8 @@ func (b *FileDump) writefile(t pipelines.Dataer) {
 
 	os.Rename(tmpName, name)
 	b.received++
+
+	b.SetMetric("filecount", int(b.received))
 }
 
 // mainloop, read from in channel and write to out channel safely, write the item

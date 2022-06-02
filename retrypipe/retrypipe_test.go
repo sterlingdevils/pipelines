@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sterlingdevils/gobase/pkg/serialnum"
+	"github.com/sterlingdevils/gobase/serialnum"
 	"github.com/sterlingdevils/pipelines/retrypipe"
 )
 

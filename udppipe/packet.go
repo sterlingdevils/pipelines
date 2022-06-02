@@ -3,7 +3,7 @@ package udppipe
 import (
 	"net"
 
-	"github.com/sterlingdevils/gobase/pkg/serialnum"
+	"github.com/sterlingdevils/gobase/serialnum"
 )
 
 type Packetable interface {
