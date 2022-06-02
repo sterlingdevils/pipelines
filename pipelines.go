@@ -24,9 +24,9 @@ type Dataer interface {
 	Data() []byte
 }
 
-type SizerDater interface {
-	Sizer
+type DataSizer interface {
 	Dataer
+	Sizer
 }
 
 type Keyer[K comparable] interface {
