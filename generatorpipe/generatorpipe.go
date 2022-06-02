@@ -3,6 +3,8 @@ package generatorpipe
 import (
 	"context"
 	"sync"
+
+	"github.com/sterlingdevils/gobase/metrics"
 )
 
 const (
@@ -18,6 +20,16 @@ type GeneratorPipe[T any] struct {
 	generate func() T
 
 	wg *sync.WaitGroup
+
+	Metricfunc func(metrics.MetricsProto)
+}
+
+func (g GeneratorPipe[_]) incMetric(name string) {
+	if g.Metricfunc == nil {
+		return
+	}
+
+	g.Metricfunc(metrics.MetricsProto{Name: name, Cmd: metrics.INC})
 }
 
 // OutChan
@@ -48,6 +60,7 @@ func (g *GeneratorPipe[T]) mainloop() {
 	for {
 		select {
 		case g.outchan <- g.generate():
+			g.incMetric("count")
 		case <-g.ctx.Done():
 			return
 		}
