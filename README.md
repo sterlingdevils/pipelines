@@ -1,5 +1,5 @@
-[![GoDoc](https://godoc.org/github.com/sterlingdevils/gobase?status.svg)](https://godoc.org/github.com/sterlingdevils/gobase)
-[![Go Report Card](https://goreportcard.com/badge/github.com/sterlingdevils/gobase)](https://goreportcard.com/report/github.com/sterlingdevils/gobase)
+[![GoDoc](https://godoc.org/github.com/sterlingdevils/pipelines?status.svg)](https://godoc.org/github.com/sterlingdevils/pipelines)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sterlingdevils/pipelines)](https://goreportcard.com/report/github.com/sterlingdevils/pipelines)
 [![License](https://img.shields.io/badge/LICENSE-Apache2.0-ff69b4.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 # gobase
