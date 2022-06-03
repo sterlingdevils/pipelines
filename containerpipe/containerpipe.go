@@ -162,6 +162,7 @@ func (c *ContainerPipe[_, T]) mainloop() {
 			// None to send so don't select on output channel
 			select {
 			case t := <-c.inchan:
+
 				c.addT(t)
 			case k := <-c.delchan:
 				c.delK(k)
