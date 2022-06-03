@@ -23,7 +23,7 @@ func ExampleUDP_NewWithParams() {
 	in := make(chan pipelines.Packetable, 1)
 
 	// Must pass in the input channel as we dont assume we own it
-	udpcomp, err := pipelines.UDP{}.NewWithParams(in, ":9092", pipelines.SERVER, 1)
+	udpcomp, err := pipelines.UDPPipe{}.NewWithParams(in, ":9092", pipelines.SERVER, 1)
 	if err != nil {
 		log.Fatalln("error creating UDP")
 	}
@@ -50,7 +50,7 @@ loopexit:
 }
 
 func ExampleUDP_New() {
-	udpcomp, err := pipelines.UDP{}.New(TESTPORT)
+	udpcomp, err := pipelines.UDPPipe{}.New(TESTPORT)
 	if err != nil {
 		fmt.Printf("failed to create udp component")
 	}
