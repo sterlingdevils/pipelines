@@ -52,8 +52,8 @@ const (
 	CLIENT = ConnType(2)
 )
 
-// UDP holds our private data for the component
-type UDP struct {
+// UDPPipe holds our private data for the component
+type UDPPipe struct {
 	addr    string
 	inchan  chan Packetable
 	outchan chan Packetable
@@ -72,7 +72,7 @@ type UDP struct {
 
 // protectChanWrite sends to a channel with a context cancel to
 // exit on contect close even if the write to channel is blocked
-func (u *UDP) protectChanWrite(t Packet) {
+func (u *UDPPipe) protectChanWrite(t Packet) {
 	defer recoverFromClosedChan()
 	select {
 	case u.outchan <- t:
@@ -81,7 +81,7 @@ func (u *UDP) protectChanWrite(t Packet) {
 }
 
 // startConn sets up the socket as a server
-func (u *UDP) startConn() error {
+func (u *UDPPipe) startConn() error {
 	addr, err := net.ResolveUDPAddr("udp4", u.addr)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (u *UDP) startConn() error {
 //   we are going to call wg.Done so things dont
 //   wait for us until we get a packet.  This
 //   should be a defer wg.Done()
-func (u *UDP) processInUDP() {
+func (u *UDPPipe) processInUDP() {
 	defer u.wg.Done()
 
 	for {
@@ -134,7 +134,7 @@ func (u *UDP) processInUDP() {
 
 // processInChan will handle the receiving on the input channel and
 // output via the UDP connection
-func (u *UDP) processInChan() {
+func (u *UDPPipe) processInChan() {
 	defer u.wg.Done()
 
 	send := func(p Packetable) {
@@ -176,23 +176,23 @@ func (u *UDP) processInChan() {
 // ------------------------------------------------------------------------------------
 
 // InChan returns a write only channel that the incomming packets will be read from
-func (u UDP) InChan() chan<- Packetable {
+func (u UDPPipe) InChan() chan<- Packetable {
 	return u.inchan
 }
 
 // OutChan returns a read only output channel that the incomming UDP packets will
 // be placed onto
-func (u UDP) OutChan() <-chan Packetable {
+func (u UDPPipe) OutChan() <-chan Packetable {
 	return u.outchan
 }
 
 // PipelineChan returns a R/W channel that is used for pipelining
-func (u UDP) PipelineChan() chan Packetable {
+func (u UDPPipe) PipelineChan() chan Packetable {
 	return u.outchan
 }
 
 // Close will shutdown the output channel and cancel the context for the listen
-func (u *UDP) Close() {
+func (u *UDPPipe) Close() {
 	// If we pipelined then call Close the input pipeline
 	if u.pl != nil {
 		u.pl.Close()
@@ -223,9 +223,9 @@ func (u *UDP) Close() {
 //
 //  NOTE:
 //    The input channel we will not close, we assume we do not own it
-func (u UDP) NewWithParams(in1 chan Packetable, addr string, ct ConnType, outChanSize int) (*UDP, error) {
+func (u UDPPipe) NewWithParams(in1 chan Packetable, addr string, ct ConnType, outChanSize int) (*UDPPipe, error) {
 	c, cancel := context.WithCancel(context.Background())
-	udp := UDP{outchan: make(chan Packetable, outChanSize), addr: addr, inchan: in1, ct: ct,
+	udp := UDPPipe{outchan: make(chan Packetable, outChanSize), addr: addr, inchan: in1, ct: ct,
 		ctx: c, can: cancel, wg: new(sync.WaitGroup), once: new(sync.Once)}
 
 	if err := udp.startConn(); err != nil {
@@ -243,7 +243,7 @@ func (u UDP) NewWithParams(in1 chan Packetable, addr string, ct ConnType, outCha
 
 // NewwithChan will create a UDP component with little fuss for the caller
 // it takes just a port and input channel.  It will always setup a SERVER mode component
-func (u UDP) NewWithChan(port int, in chan Packetable) (*UDP, error) {
+func (u UDPPipe) NewWithChan(port int, in chan Packetable) (*UDPPipe, error) {
 	addr := fmt.Sprintf(":%v", port)
 	udpc, err := u.NewWithParams(in, addr, SERVER, 1)
 	if err != nil {
@@ -253,7 +253,7 @@ func (u UDP) NewWithChan(port int, in chan Packetable) (*UDP, error) {
 }
 
 // NewWithPipeline takes a pipelineable
-func (u UDP) NewWithPipeline(port int, p Pipeline[Packetable]) (*UDP, error) {
+func (u UDPPipe) NewWithPipeline(port int, p Pipeline[Packetable]) (*UDPPipe, error) {
 	if p == nil {
 		return nil, errors.New("bad pipeline passed in to New")
 	}
@@ -270,7 +270,7 @@ func (u UDP) NewWithPipeline(port int, p Pipeline[Packetable]) (*UDP, error) {
 
 // New will create a UDP component with little fuss for the caller
 // it takes just a port.  It will always setup a SERVER mode component
-func (u UDP) New(port int) (*UDP, error) {
+func (u UDPPipe) New(port int) (*UDPPipe, error) {
 	udpc, err := u.NewWithChan(port, make(chan Packetable, 1))
 	if err != nil {
 		return nil, err
