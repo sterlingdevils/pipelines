@@ -13,7 +13,7 @@ func (n Node[T]) Close() {
 }
 
 // Check we can make a Pipelineable
-func Example() {
+func ExamplePipeline() {
 	var p pipelines.Pipeline[int] = Node[int]{}
 	p.Close()
 

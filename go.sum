@@ -1,2 +1,6 @@
 github.com/sterlingdevils/gobase v0.0.15 h1:C6LZbAx2L10HPsH/D6NxiXueWhqhNvrd+FQwn4b4ykk=
 github.com/sterlingdevils/gobase v0.0.15/go.mod h1:wwFI5VZu+/QjQ3hyixFFq7Xgb9+sKgDzsgdNeEcNVuk=
+github.com/sterlingdevils/gobase v0.0.17 h1:wZQw8tN8NCLPIkwZ8hmmqqOiM63tjvVvMEd60U3WsP4=
+github.com/sterlingdevils/gobase v0.0.17/go.mod h1:wwFI5VZu+/QjQ3hyixFFq7Xgb9+sKgDzsgdNeEcNVuk=
+github.com/sterlingdevils/gobase v0.0.18-0.20220603142926-2263ac3e4f53 h1:EGUFQwj9+MxdxX7Jwv+rEjpwkH2W2pSnkh3kqFO9ctQ=
+github.com/sterlingdevils/gobase v0.0.18-0.20220603142926-2263ac3e4f53/go.mod h1:wwFI5VZu+/QjQ3hyixFFq7Xgb9+sKgDzsgdNeEcNVuk=

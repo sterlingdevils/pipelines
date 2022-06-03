@@ -1,5 +1,9 @@
 package pipelines
 
+const (
+	CHANSIZE = 0
+)
+
 type PipelineChaner[T any] interface {
 	// PipelineChan needs to return a R/W chan that is for the output channel, This is for chaining the pipeline
 	PipelineChan() chan T
@@ -40,4 +44,16 @@ type FileNamer interface {
 type FileNamerDataer interface {
 	Dataer
 	FileNamer
+}
+
+// RecoverFromClosedChan is used when it is OK if the channel is closed we are writing on
+// This is not great using the string compare but the go runtime uses a generic error so we
+// can't trap this any other way.
+func recoverFromClosedChan() {
+	if r := recover(); r != nil {
+		if e, ok := r.(error); ok && e.Error() == "send on closed channel" {
+			return
+		}
+		panic(r)
+	}
 }
