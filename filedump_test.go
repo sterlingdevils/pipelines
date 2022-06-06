@@ -3,7 +3,6 @@ package pipelines_test
 import (
 	"fmt"
 	"os"
-	"pipelines/udppipe"
 	"sync"
 	"time"
 
@@ -40,9 +39,9 @@ func Example() {
 	go readOut(&wg, ochan)
 
 	// Send a Packet
-	fd.InChan() <- udppipe.Packet{DataSlice: []byte("Hello, World!")}
-	fd.InChan() <- udppipe.Packet{DataSlice: []byte("Gimme Jimmy")}
-	fd.InChan() <- udppipe.Packet{DataSlice: []byte("See what happens with special characters\nOn this line")}
+	fd.InChan() <- pipelines.Packet{DataSlice: []byte("Hello, World!")}
+	fd.InChan() <- pipelines.Packet{DataSlice: []byte("Gimme Jimmy")}
+	fd.InChan() <- pipelines.Packet{DataSlice: []byte("See what happens with special characters\nOn this line")}
 
 	fd.InChan() <- DataHold{data: []byte("This is another type of input")}
 
