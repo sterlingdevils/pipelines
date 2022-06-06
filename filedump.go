@@ -2,6 +2,7 @@ package pipelines
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -15,7 +16,8 @@ type FileDump struct {
 	ctx context.Context
 	can context.CancelFunc
 
-	inchan chan Dataer
+	inchan  chan Dataer
+	Outchan *chan string
 
 	pl Pipeline[Dataer]
 	wg *sync.WaitGroup
@@ -50,18 +52,18 @@ func (b *FileDump) Close() {
 	b.wg.Wait()
 }
 
-func (b *FileDump) writefile(t Dataer) {
+func (b *FileDump) writefile(t Dataer) (string, error) {
 	name := strconv.FormatInt(time.Now().Unix(), 10) + "." + fmt.Sprintf("%06d", b.received)
 	tmpName := "." + name
 	tmpFd, err := os.Create(tmpName)
 	if err != nil {
-		return
+		return "", errors.New("Unable to create file")
 	}
 
 	_, err = tmpFd.Write(t.Data())
 	if err != nil {
 		tmpFd.Close()
-		return
+		return "", errors.New("Unable to write to file")
 	}
 	tmpFd.Close()
 
@@ -69,6 +71,24 @@ func (b *FileDump) writefile(t Dataer) {
 	b.received++
 
 	b.SetMetric("filecount", int(b.received))
+	return name, nil
+}
+
+// Write to a file and put the name on the output buffer
+func (b *FileDump) writeandRespond(t Dataer) {
+	f, err := b.writefile(t)
+	if err != nil {
+		return
+	}
+
+	if b.Outchan == nil {
+		return
+	}
+
+	select {
+	case *b.Outchan <- f:
+	case <-b.ctx.Done():
+	}
 }
 
 // mainloop, read from in channel and write to out channel safely, write the item
@@ -82,7 +102,7 @@ func (b *FileDump) mainloop() {
 			if !ok {
 				return
 			}
-			b.writefile(t)
+			b.writeandRespond(t)
 		case <-b.ctx.Done():
 			return
 		}
