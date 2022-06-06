@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/sterlingdevils/gobase/metrics"
+	"github.com/sterlingdevils/gobase"
 )
 
 type GeneratorPipe[T any] struct {
@@ -17,7 +17,7 @@ type GeneratorPipe[T any] struct {
 
 	wg *sync.WaitGroup
 
-	Metricfunc func(metrics.MetricsProto)
+	Metricfunc func(gobase.MetricsProto)
 }
 
 func (g GeneratorPipe[_]) incMetric(name string) {
@@ -25,7 +25,7 @@ func (g GeneratorPipe[_]) incMetric(name string) {
 		return
 	}
 
-	g.Metricfunc(metrics.MetricsProto{Name: name, Cmd: metrics.INC})
+	g.Metricfunc(gobase.MetricsProto{Name: name, Cmd: gobase.INC})
 }
 
 // OutChan

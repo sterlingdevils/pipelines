@@ -3,7 +3,7 @@ package pipelines
 import (
 	"net"
 
-	"github.com/sterlingdevils/gobase/serialnum"
+	"github.com/sterlingdevils/gobase"
 )
 
 type Packetable interface {
@@ -45,7 +45,7 @@ type KeyablePacket struct {
 }
 
 func (p KeyablePacket) Key() uint64 {
-	s, _ := serialnum.Uint64(p.DataSlice)
+	s, _ := (&gobase.SerialNum{}).Uint64(p.DataSlice)
 	return s
 }
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sterlingdevils/gobase/serialnum"
+	"github.com/sterlingdevils/gobase"
 	"github.com/sterlingdevils/pipelines"
 )
 
@@ -32,7 +32,7 @@ func ExampleRetryPipe() {
 }
 
 func ExampleRetryPipe_inout() {
-	sn := serialnum.New()
+	sn := (&gobase.SerialNum{}).New()
 	retry := pipelines.RetryPipe[rptKeyType, *Obj]{}.New()
 
 	go func() {
