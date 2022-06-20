@@ -11,8 +11,8 @@ type Retryable[K comparable] interface {
 }
 
 const (
-	RETRYTIME  = 3 * time.Second
-	EXPIRETIME = 30 * time.Second
+	RETRYTIME  = 13 * time.Second
+	EXPIRETIME = 35 * time.Second
 )
 
 type RetryPipe[K comparable, T Retryable[K]] struct {
