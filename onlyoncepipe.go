@@ -2,6 +2,7 @@ package pipelines
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 )
@@ -57,12 +58,15 @@ func (b *OnlyOncePipe[_]) mainloop() {
 	defer close(b.outchan)
 
 	ticker := time.NewTicker(b.gctime)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
+			log.Printf("tick tock\n")
 			for m, val := range b.smap {
-				if val.Add(time.Duration(b.frtime.Seconds())).After(time.Now()) {
+				if time.Since(val) > b.frtime {
+					log.Printf("Removing: %v from oop with time %v\n", m, val)
 					delete(b.smap, m)
 				}
 			}
